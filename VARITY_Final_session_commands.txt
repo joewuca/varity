@@ -1,3 +1,12 @@
+#Example commands for "Final" session#
+
+#The following commands are disabled because they may change the existing VARITY models. To create new VARITY models, please initiate a new session.
+#1)init_session
+#2)mv_analysis
+#3)hp_tuning
+#4)save_best_hp
+#5)test_cv_predition
+
 ##################################################################################################################################################
 #plot_mv_result (plot the moving window analysis result for each filtering hyperparameter) 
 ##################################################################################################################################################

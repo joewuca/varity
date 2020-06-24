@@ -1,10 +1,11 @@
+#Example commands for build VARITY models with new session id #
+
 ##################################################################################################################################################
 #init_session (Initiate a new session)
 ##################################################################################################################################################
 python3 YOUR_SCRIPT_FOLDER/varity_run.py action=init_session session_id=YOUR_SESSION_ID project_path=YOUR_PROJECT_FOLDER
 
 python3 YOUR_SCRIPT_FOLDER/varity_run.py action=init_session session_id=YOUR_SESSION_ID project_path=YOUR_PROJECT_FOLDER reinitiate_session=1
-
 
 ##################################################################################################################################################
 #mv_analysis (Initiate a new session)
@@ -93,6 +94,15 @@ python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=YOUR_S
 ##################################################################################################################################################
 #test_cv_prediction (run nested cross validation)
 ##################################################################################################################################################
+#VARITY_R_CV Model and a few existing predictors
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=VARITY_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=SIFT_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=PROVEAN_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=SIFT_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=Polyphen2_HDIV_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=CADD_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=PrimateAI_R_CV project_path=YOUR_PROJECT_FOLDER 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=test_cv_prediction session_id=YOUR_SESSION_ID predictor=Eigen_R_CV project_path=YOUR_PROJECT_FOLDER 
 
 
 #########################################################################
