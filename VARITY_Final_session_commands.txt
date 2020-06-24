@@ -1,0 +1,79 @@
+##################################################################################################################################################
+#plot_mv_result (plot the moving window analysis result for each filtering hyperparameter) 
+##################################################################################################################################################
+#VARITY_R Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_gnomad_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_hgmd_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_1_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_1_af 
+
+#VARITY_ER Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_gnomad_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_hgmd_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_1_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_mv_result session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_1_af 
+
+##################################################################################################################################################
+#plot_hp_weight (plot the filtering and weighting result on the associated add-on set(s) of each filtering hyperparameter
+##################################################################################################################################################
+#VARITY_R Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_gnomad_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_hgmd_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_1_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_1_af 
+
+#VARITY_ER Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_0_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_lc 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_mave_1_accessibility 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_gnomad_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_hgmd_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_clinvar_1_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_0_af 
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_hp_weight session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER filtering_hp=extra_humsavar_1_af 
+
+#########################################################################
+#plot_test_result (plot nested cross-validation result)
+#########################################################################
+#VARITY_R_CV Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_test_result session_id=Final predictor=VARITY_R_CV project_path=YOUR_PROJECT_FOLDER compare_predictors=[SIFT_R_CV,PROVEAN_R_CV,Polyphen2_HDIV_R_CV,CADD_R_CV,PrimateAI_R_CV,Eigen_R_CV] fig_x=35 fix_y=20
+
+#VARITY_ER_CV Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=plot_test_result session_id=Final predictor=VARITY_ER_CV project_path=YOUR_PROJECT_FOLDER compare_predictors=[SIFT_ER_CV,PROVEAN_ER_CV,Polyphen2_HDIV_ER_CV,CADD_ER_CV,PrimateAI_ER_CV,Eigen_ER_CV] fig_x=35 fix_y=20
+
+#########################################################################
+#target_prediction (use VARITY models make predictions)
+#########################################################################
+
+#VARITY_R Model (leave one example out)
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=target_prediction session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER target_file=YOUR_PROJECT_FOLDER/data/varity_all_P38398_final.csv loo=1 key_cols=[p_vid,aa_pos,aa_ref,aa_alt] 
+
+#VARITY_R Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=target_prediction session_id=Final predictor=VARITY_R project_path=YOUR_PROJECT_FOLDER target_file=YOUR_PROJECT_FOLDER/data/varity_all_P38398_final.csv loo=0
+
+#VARITY_ER Model (leave one example out)
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=target_prediction session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER target_file=YOUR_PROJECT_FOLDER/data/varity_all_P38398_final.csv loo=1 key_cols=[p_vid,aa_pos,aa_ref,aa_alt] 
+
+#VARITY_ER Model
+python3 YOUR_SCRIPT_FOLDER/varity_run.py action=target_prediction session_id=Final predictor=VARITY_ER project_path=YOUR_PROJECT_FOLDER target_file=YOUR_PROJECT_FOLDER/data/varity_all_P38398_final.csv loo=0
+
