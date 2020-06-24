@@ -1,12 +1,7 @@
 ### VARITY Framework
+VARITY is a data weighting approach to increase generalization performance of machine learning models.
 
-VARITY framework can potentially increase generalization performance of a machine learning model if :
-1)Only a small number of high-quality training examples (core set) are available.
-2)Various potentially biased or error-prone training data sets (add-on sets) usually collected from different sources are accessible.
-3)The possible quality-informative properties for each add-on set are known.
-
-VARITY uses an extension of the Gradient Boosted Trees algorithm that allows different weights to be placed on different training examples.  A high-quality core set of examples are given full weight, while examples from diverse add-on sets with potentially lower predictive utility are subjected to filtering and weighting. For each add-on set, examples are ordered by one or more quality-informative properties, and a threshold used to filter out the examples with low predictive utility, with a single weight assigned to all retained examples. Filtering thresholds and weights are treated as hyper-parameters and optimized for performance on the core set of examples using cross-validation.
-
+VARITY allows different weights to be placed on different training examples.  A high-quality core set of examples are given full weight, while examples from diverse add-on sets with potentially lower predictive utility are subjected to filtering and weighting. For each add-on set, examples are ordered by one or more quality-informative properties, and a threshold used to filter out the examples with low predictive utility, with a single weight assigned to all retained examples. Filtering thresholds and weights are treated as hyper-parameters and optimized for performance on the core set of examples using cross-validation.
 
 To apply VARIYT framework:
 
