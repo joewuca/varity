@@ -16,5 +16,3 @@ VARITY is a supervised machine learning approach to bulid specialized predictive
 
 ### Technical Support
 Please contact joe.wu.ca@gmail.com for technical support
-=======
->>>>>>> 797e8ab27eff11d54987519104cb3de14e3629fe
