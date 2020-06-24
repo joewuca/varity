@@ -1,7 +1,7 @@
 ## VARITY Framework
 VARITY is a supervised machine learning approach to bulid specialized predictive models using training data with optimized differential weights. VARITY allows different weights to be placed on different training examples.  A high-quality core set of examples are given full weight, while examples from diverse add-on sets with potentially lower predictive utility are subjected to filtering and weighting. For each add-on set, examples are ordered by one or more quality-informative properties, and a threshold used to filter out the examples with low predictive utility, with a single weight assigned to all retained examples. Filtering thresholds and weights are treated as hyper-parameters and optimized for performance on the core set of examples using cross-validation.
 
-### Steps to apply VARIYT framework:
+### Steps to apply VARITY framework:
 1. Assemble training data (both high-quality core set and add-on sets with uncertain quality).
 2. Optional step: Identify quality-informative properties for each add-on set using moving window analysis.
 3. Config filtering and weighting hyperparameters for each add-on set.
