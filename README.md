@@ -1,4 +1,4 @@
-###VARITY Framework
+### VARITY Framework
 
 VARITY framework can potentially increase generalization performance of a machine learning model if :
 1)Only a small number of high-quality training examples (core set) are available.
