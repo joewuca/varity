@@ -36,12 +36,10 @@ import xml.etree.ElementTree as ET
 from io import StringIO
 import alm_fun
 
-
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)   
 
-       
 #*****************************************************************************************************************************
 #file based human database 
 #*****************************************************************************************************************************
@@ -124,12 +122,7 @@ class alm_humandb:
         if 'single_job' in argvs['db_action']:
             cur_dbobject = argvs['db_action'].split("-")[2]
             cur_action = argvs['db_action'].split("-")[0]
-            self.create_and_run_single_job(cur_action,cur_dbobject,argvs['parallel_id'],argvs['parallel_num']) 
-#         if 'jobs' in argvs['db_action']
-#             cur_dbobject = argvs['db_action'].split("-")[2]
-#             cur_action = argvs['db_action'].split("-")[0]
-#             self.create_and_run_jobs(cur_action,cur_dbobject,argvs['parallel_num']) 
-#             
+            self.create_and_run_single_job(cur_action,cur_dbobject,argvs['parallel_id'],argvs['parallel_num'])             
         if argvs['db_action'] == 'varity_check_data':
             self.varity_check_data(argvs['parallel_id'])            
         if argvs['db_action'] == 'varity_check_data_jobs':
@@ -155,11 +148,9 @@ class alm_humandb:
         if argvs['db_action'] == 'retrieve_pisa_data_jobs':
             self.retrieve_pisa_data_jobs(argvs['parallel_num'])             
         if argvs['db_action'] == 'combine_pisa_data':
-            self.combine_pisa_data()  
-            
+            self.combine_pisa_data()              
         if argvs['db_action']  == 'initiate_psipred_data':
-            self.initiate_psipred_data()   
-        
+            self.initiate_psipred_data()           
         if argvs['db_action'] == 'check_psipred_data':
             self.check_psipred_data()            
         if argvs['db_action'] == 'retrieve_psipred_data':
@@ -167,14 +158,11 @@ class alm_humandb:
         if argvs['db_action'] == 'retrieve_psipred_data_jobs':
             self.retrieve_psipred_data_jobs(argvs['parallel_num'])             
         if argvs['db_action'] == 'combine_psipred_data':
-            self.combine_psipred_data()  
-            
+            self.combine_psipred_data()              
         if argvs['db_action'] =='create_humsavar_data':
             self.create_humsavar_data()            
-
         if argvs['db_action'] =='create_hgmd_data':
-            self.create_hgmd_data()   
-                  
+            self.create_hgmd_data()                     
         if argvs['db_action']  == 'create_clinvar_data':
             self.create_clinvar_data()
         if argvs['db_action'] == 'create_mave_data':
@@ -196,37 +184,27 @@ class alm_humandb:
         if argvs['db_action']  == 'varity_all_variant_process': 
             self.varity_all_variant_process(argvs['parallel_id'])
         if argvs['db_action']  == 'varity_all_variant_process_jobs':
-            self.varity_all_variant_process_jobs()
-            
+            self.varity_all_variant_process_jobs()            
         if argvs['db_action']  == 'varity_combine_train_data':                         
-            self.varity_combine_train_data()
-            
+            self.varity_combine_train_data()            
         if argvs['db_action'] == 'varity_combine_all_data':
-            self.varity_combine_all_data()
-            
+            self.varity_combine_all_data()            
         if argvs['db_action'] == 'varity_mave_final_data':
-            self.varity_mave_final_data()
-            
+            self.varity_mave_final_data()            
         if argvs['db_action'] == 'varity_count_all_data':
-            self.varity_count_all_data()
-            
+            self.varity_count_all_data()            
         if argvs['db_action']  == 'varity_train_variant_process':                         
-            self.varity_train_variant_process()    
-            
+            self.varity_train_variant_process()                
         if argvs['db_action'] == 'varity_train_data_final_process':
-            self.varity_train_data_final_process()    
-              
+            self.varity_train_data_final_process()                  
         if argvs['db_action'] == 'varity_all_data_final_process':
-            self.varity_all_data_final_process(argvs['parallel_id'])      
-            
+            self.varity_all_data_final_process(argvs['parallel_id'])                  
         if argvs['db_action'] == 'varity_final_process_jobs':
             self.varity_final_process_jobs()      
-
         if argvs['db_action']  == 'create_ensembl66_data':
             self.create_ensembl66_data()
         if argvs['db_action']  == 'create_matched_uniprot_mapping':            
-            self.create_matched_uniprot_mapping()
-            
+            self.create_matched_uniprot_mapping()            
         if argvs['db_action']  == 'create_sift_data':
             self.create_sift_data()
         if argvs['db_action']  == 'create_provean_data':
@@ -234,11 +212,9 @@ class alm_humandb:
         if argvs['db_action']  == 'create_gnomad_data':
             self.create_gnomad_data()
         if argvs['db_action']  == 'create_evmutation_data':
-            self.create_evmutation_data()   
-            
+            self.create_evmutation_data()               
         if argvs['db_action'] == 'create_varity_data_for_single_protein':
             self.create_varity_data_for_single_protein(argvs['single_id'],argvs['single_id_chr'])
-
         if argvs['db_action'] == 'run_psipred_by_uniprotid':
             self.run_psipred_by_uniprotid(argvs['single_id'])
 
@@ -1653,8 +1629,7 @@ class alm_humandb:
             psipred_cmd = "runpsipred " + self.db_path + "uniprot/bygene/" + uniprot_id + ".fasta"                
             subprocess.run(psipred_cmd.split(" "), cwd = self.db_path + '../../tools/psipred/psipred/' )
             alm_fun.show_msg(cur_parallel_log,self.verbose, uniprot_id + ' psipred is retrieved.')
-            
-            
+                        
     def  run_psipred_by_uniprotid(self,uniprot_id):
         #**********************************************************************************************
         # PISPRED : after installation, remeber to edit the runpsipred script to make it work!!!!!!!
@@ -1695,7 +1670,6 @@ class alm_humandb:
 #         psipred_seq_file.write(psipred_seq_str)      
         psipred_seq_file.close()
         alm_fun.show_msg(cur_log,self.verbose, uniprot_id + ' psipred is done.')
-
 
     def create_matched_uniprot_mapping(self):
         
@@ -1902,7 +1876,6 @@ class alm_humandb:
             varity_dbnsfp_processed_data = self.process_dbnsfp_out(varity_dbnsfp_data,cur_log)                
             varity_dbnsfp_processed_data.to_csv(self.db_path + 'varity/csv/varity_dbnsfp_processed_' + str(single_id) + '.csv',index = False)
             alm_fun.show_msg(cur_log,self.verbose, str(single_id) + ' records after processing : ' + str(varity_dbnsfp_processed_data.shape[0]))
-
                                                                   
     def varity_merge_data(self,parallel_id,single_id = ''):
         
@@ -2169,10 +2142,6 @@ class alm_humandb:
                         print  (job_name + ' submit error,rescheduling......' )
                 print (job_name + ' submitted id: ' + job_id)                 
                         
-#             varity_variant_process_cmd =  'nohup ' + varity_variant_process_cmd + ' >' +  job_name + '.out &\n'
-#             print (varity_variant_process_cmd)
-#             os.system(varity_variant_process_cmd)
-
     def varity_variant_process(self, input_data, merge_mave,data_name):    
         def duplicate_aa_process(input):             
             if input.dtypes == 'float64':            
@@ -2259,12 +2228,10 @@ class alm_humandb:
         varity_train_variant_processed = self.varity_variant_process(varity_train_data,0,'varity_single_protein_' + single_id)    
         varity_train_variant_processed.to_csv(self.db_path + 'varity/csv/varity_' + single_id + '_variant_processed.csv', index = False)
     
-    
     def varity_single_protein_data_final_process(self,single_id):                            
         varity_single_protein_data = pd.read_csv(self.db_path + 'varity/csv/varity_' + single_id + '_variant_processed.csv') 
         self.varity_final_process(varity_single_protein_data,'varity_all_' +  single_id)        
-        
-    
+            
     def varity_train_data_final_process(self):                            
         varity_train_data = pd.read_csv(self.db_path + 'varity/csv/varity_train_variant_processed.csv') 
         self.varity_final_process(varity_train_data,'varity_train_data')        
@@ -2272,9 +2239,7 @@ class alm_humandb:
     def varity_all_data_final_process(self,parallel_id):        
         varity_variant_processed_data = pd.read_csv(self.db_path + 'varity/csv/varity_all_variant_processed_' + str(parallel_id) + '.csv',dtype = {'chr':'str'})
         self.varity_final_process(varity_variant_processed_data,'varity_all_' + parallel_id)    
-    
-    
-    
+            
     def varity_final_process(self,input_data,data_name):
         cur_log = self.db_path + 'varity/log/' + data_name + '_final_process.log'
         def define_label(mave_label,clinvar_label,gnomad_label):            
@@ -2487,10 +2452,6 @@ class alm_humandb:
                         job_id = '-1'
                         print  (job_name + ' submit error,rescheduling......' )
                 print (job_name + ' submitted id: ' + job_id)        
-
-#             varity_final_process_cmd =  'nohup ' + varity_final_process_cmd + ' >' +  job_name + '.out &\n'
-#             print (varity_final_process_cmd)
-#             os.system(varity_final_process_cmd)
                 
     def varity_train_data_analysis(self):
 
