@@ -4,7 +4,6 @@ import pandas as pd
 import csv
 import os
 import re
-
 import operator
 import itertools
 import time
@@ -102,6 +101,14 @@ class alm_data:
             self.train_cv_splits_df = self.dict_savedata['train_cv_splits_df'] 
             self.validation_cv_splits_df = self.dict_savedata['validation_cv_splits_df']  
             
+            self.train_data_index_df['weight'] = 1
+            self.extra_train_data_df_lst[0]['weight'] = 1
+            
+#             print (str(self.train_data_index_df.loc[self.train_data_index_df['mpc_obs_exp'].notnull(),:].shape))
+            
+            alm_fun.show_msg (self.log,self.verbose, str(self.train_data_index_df['set_name'].value_counts().sort_index()))
+            alm_fun.show_msg (self.log,self.verbose,str(self.extra_train_data_df_lst[0]['set_name'].value_counts().sort_index()))
+            
             if self.if_gradient:
                 self.gradients = self.dict_savedata['gradients']
             
@@ -117,22 +124,6 @@ class alm_data:
                 self.train_cv_splits_engineered_df = self.dict_savedata_engineered['train_cv_splits_engineered_df'] 
                 self.validation_cv_splits_engineered_df = self.dict_savedata_engineered['validation_cv_splits_engineered_df'] 
                 
-            msg = "[refresh_data] -- load from disk --\n" + self.data_msg()
-            
-            if self.old_system == 1: # convert the old data format to new (the manscript data format is old)
-                self.train_data_original_df = self.convert_old_data(self.train_data_original_df)
-                self.extra_train_data_df_lst[0] = self.convert_old_data(self.extra_train_data_df_lst[0])
-                self.extra_train_data_df_lst[0]['extra_data'] = 1
-                self.train_data_df = self.convert_old_data(self.train_data_df)
-                self.train_data_df['extra_data'] = 0
-                
-                self.train_data_index_df = self.train_data_df
-                self.validation_data_index_df = self.train_data_df
-                self.test_data_index_df = self.train_data_df
-                self.save_data()
-                print ('old system data converted......')
-
-            alm_fun.show_msg(self.log, self.verbose, msg)  
 
     def reload_data(self, ctuoff=np.nan):
         # Read training (extra training) and test data from files
@@ -159,7 +150,30 @@ class alm_data:
         data_df.loc[(data_df['train_mave_source'] == 1) & (data_df['label'] == 1),'set_name']= 'extra_mave_1'        
 
         return(data_df)
+    
+    def add_new_predictor_scores(self,data_df):
+#         data_df['merge_flag'] = 1
+#         x = data_df.groupby(['chr','nt_pos','nt_ref','nt_alt'])['aa_pos'].agg('min').reset_index()
+#         print (str(data_df.shape[0]) + '-' + str(x.shape[0]) + '=' + str(data_df.shape[0]-x.shape[0]))
+#         self.train_data_df.loc[(self.train_data_df['nt_pos'] == 48935717) & (self.train_data_df['nt_ref'] == 'C') & (self.train_data_df['nt_alt'] == 'G'),['p_vid','aa_pos','aa_ref','aa_alt']]            
+#         mistic_df = pd.read_csv(self.db_path + '/mistic/org/MISTIC_GRCh37.tsv', sep = '\t')
+#         mistic_df.columns = ['chr','nt_pos','nt_ref','nt_alt','mistic_score','mistic_pred']        
+#         new_mistic_df = mistic_df.groupby(['chr','nt_pos','nt_ref','nt_alt'])['mistic_score'].agg('min').reset_index()
+#         print(new_mistic_df.loc[(new_mistic_df['nt_pos'] == 150659434) & (new_mistic_df['nt_ref'] == 'G') & (new_mistic_df['nt_alt'] == 'T'),['chr','nt_pos','nt_ref','nt_alt','mistic_score','mistic_pred']])
+#         y = data_merge_df.groupby(['chr','nt_pos','nt_ref','nt_alt'])['aa_pos'].count().reset_index()
+#         y.loc[y['aa_pos']>1,:]
+#         data_merge_df.loc[(data_merge_df['nt_pos'] == 150659434) & (data_merge_df['nt_ref'] == 'G') & (data_merge_df['nt_alt'] == 'T'),['p_vid','aa_pos','aa_ref','aa_alt','mistic_score','mistic_pred']]
 
+        # add mistic and mpc        
+#       
+        mpc_df = pd.read_csv(self.db_path + '/mpc/all/mpc_values_v2_avg_duplicated_scores.csv') 
+        data_merge_df = pd.merge(data_df,mpc_df,how = 'left')
+        mistic_df = pd.read_csv(self.db_path + '/mistic/all/MISTIC_GRCh37_avg_duplicated_scores.csv')                            
+        data_merge_df = pd.merge(data_merge_df,mistic_df,how = 'left')
+        #         print (str(data_merge_df.shape[0]) + '-' + str(data_df.shape[0]) + '=' + str(data_merge_df.shape[0]-data_df.shape[0]))                                
+        print (str(data_merge_df.shape[0]) + '-' + str(data_df.shape[0]) + '=' + str(data_merge_df.shape[0]-data_df.shape[0]))                 
+        return(data_merge_df)
+        
     def save_data(self):
         
         self.dict_savedata = {}
@@ -577,6 +591,7 @@ class alm_data:
   
     def data_msg (self,split = 1):
         msg = 'Core training data shape: ' + ' [' + str(self.train_data_df.shape[0]) + ',' + str(self.train_data_df.shape[1]) + ']\n'
+        
 #               'test_data' + ' [' + str(self.test_data_df.shape[0]) + ',' + str(self.test_data_df.shape[1] - 1) + ']\n' + \
 #               'target_data' + ' [' + str(self.target_data_df.shape[0]) + ',' + str(self.target_data_df.shape[1] - 1) + ']\n' 
         if self.use_extra_data != 0 :
@@ -594,3 +609,5 @@ class alm_data:
                     msg += 'inner loop fold ' + str(inner_fold_id) + ': [train: ' + str(len(self.train_cv_splits_df[outer_fold_id][inner_fold_id]['no_gradient'] )) + ', validation: ' + str(len(self.validation_cv_splits_df[outer_fold_id][inner_fold_id]['no_gradient'])) + ']\n'        
         return (msg)     
 
+
+ 

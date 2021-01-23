@@ -1,3 +1,4 @@
+
 import sys
 import os
 import numpy as np
@@ -54,13 +55,14 @@ class alm_project:
         if argvs['runtime']['action'] == 'init_session':        
             init_predictors = argvs['predictor'].keys()
         else:
-            init_predictors = [argvs['runtime']['predictor']] + argvs['runtime']['compare_predictors']
+            init_predictors = set(list([argvs['runtime']['predictor']] + argvs['runtime']['compare_predictors'] + argvs['runtime']['predictors']))
+#             init_predictors = set(list([argvs['runtime']['predictor']] + argvs['runtime']['predictors']))
             
         session_id = argvs['runtime']['session_id']
         for cur_predictor in init_predictors:
             if cur_predictor != '':
                 cur_data = argvs['predictor'][cur_predictor]['data']
-                if cur_data not in init_datas:                
+                if (cur_data not in init_datas) & (cur_data != 'none'):                
                     init_datas.append(cur_data)
                 cur_es = argvs['predictor'][cur_predictor]['estimator']
                 if cur_es not in init_estimators:                
@@ -70,10 +72,10 @@ class alm_project:
         for cur_data in init_datas:
             if cur_data != 'None':
                 cur_data_init_params = argvs['data'][cur_data] 
-                cur_data_init_params['session_id'] = session_id
-                cur_data_init_params['old_system'] = argvs['runtime']['old_system']
+                cur_data_init_params['session_id'] = session_id                            
                 cur_data_init_params['load_from_disk'] = argvs['runtime']['load_from_disk']
                 cur_data_init_params['save_to_disk'] = argvs['runtime']['save_to_disk']
+                cur_data_init_params['db_path'] = argvs['runtime']['db_path']
                 cur_data_init_params['name'] = cur_data             
                                   
                 if cur_data_init_params['load_from_disk'] == 1:
@@ -117,13 +119,21 @@ class alm_project:
             if cur_predictor != '':
                 cur_predictor_init_params = argvs['predictor'][cur_predictor]
                 cur_predictor_init_params['hyperparameter'] = argvs['hyperparameter']
+                cur_predictor_init_params['hp_tune_type'] = argvs['runtime']['hp_tune_type']
+                if 'qip' in argvs.keys():
+                    cur_predictor_init_params['qip'] = argvs['qip']
                 cur_predictor_init_params['init_hp_config'] = argvs['runtime']['init_hp_config']
                 cur_predictor_init_params['old_system'] = argvs['runtime']['old_system']
                 cur_predictor_init_params['shap_train_interaction'] = argvs['runtime']['shap_train_interaction']
                 cur_predictor_init_params['shap_test_interaction'] = argvs['runtime']['shap_test_interaction']
+                cur_predictor_init_params['load_existing_model'] = argvs['runtime']['load_existing_model']
+                
                 cur_predictor_init_params['session_id'] = session_id
                 cur_predictor_init_params['name'] = cur_predictor
-                cur_predictor_init_params['data_instance'] = self.data[cur_predictor_init_params['data']]
+                if cur_predictor_init_params['data'] == 'none':
+                    cur_predictor_init_params['data_instance'] = None
+                else:
+                    cur_predictor_init_params['data_instance'] = self.data[cur_predictor_init_params['data']]                
                 cur_predictor_init_params['es_instance'] = self.estimator[cur_predictor_init_params['estimator']]
                 self.predictor[cur_predictor] = alm_predictor.alm_predictor(cur_predictor_init_params)
                 self.predictor[cur_predictor].filter_test = varity_obj.filter_test

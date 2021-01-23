@@ -1,17 +1,15 @@
 ## VARITY Framework
-VARITY is a supervised machine learning approach to build specialized predictive models using training data with optimized differential weights. VARITY allows different weights to be placed on different training examples.  A high-quality core set of examples are given full weight, while examples from diverse add-on sets with potentially lower predictive utility are subjected to filtering and weighting. For each add-on set, examples are ordered by one or more quality-informative properties, and a threshold used to filter out the examples with low predictive utility, with a single weight assigned to all retained examples. Filtering thresholds and weights are treated as hyper-parameters and optimized for performance on the core set of examples using cross-validation.
+VARITY is a supervised machine learning approach to build specialized predictive models using training examples with optimized differential weights. Training examples are assembled into different training sets: 1) one core set of examples which are known to have high quality. 2) one or more add-on sets of examples with uncertain quality. For each training set, the weights of examples are determined using one or more logistic functions each takes one quality-informative property as input. The parameters of each logistic function are treated as hyper-parameters and optimized for performance on the core set of examples using cross-validation.
 
 ### Steps to apply VARITY framework:
-1. Assemble training data (both high-quality core set and add-on sets with uncertain quality).
-2. Identify quality-informative properties for each add-on set using moving window analysis.
-3. Config filtering and weighting hyperparameters for each add-on set.
-4. Run hyperparameter optimization to determine filtering thresholds and weight for each add-on set.
-5. Train the final VARITY model with core set and weighted add-on sets.
+1. Assemble training examples (high-quality core set and add-on sets with uncertain quality).
+2. Identify quality-informative properties for each add-on set using domain knowledge (Optional: verify using moving window analysis).
+3. Config hyper-parameters based on quality-informative properties (parameters of corresponding logistic functions).  
+4. Optional: Run nested cross-validation to evaluate performance.
+5. Run hyper-parameter optimization to determine weight of each training example. 
+6. Train the final VARITY model with core set and weighted add-on sets.
 
-### To build VARITY models:
-1. Download [VARITY project folder](http://varity.varianteffect.org/downloads/VARITY_Final.zip) and extract to a local folder (as your project folder) to keep all raw training data(/project_folder/data) and results. The downloaded folder contains an existing session named "Final" for the manuscript ***Improved pathogenicity prediction for rare human missense variants***. Using [VARITY python scripts](https://github.com/joewuca/varity/tree/master/python), you can explore the existing session or create a new session to build your own VARITY models. Please read [VARITY user guide](https://github.com/joewuca/varity/tree/master/VARITY_user_guide.pdf) before you process to next step.
-2. Explore "Final" session for VARITY_R and VARITY_ER models. Example commands are in [Final session commands](https://github.com/joewuca/varity/tree/master/VARITY_Final_session_commands.txt).
-3. Create a new session to build your own VARITY models. Example commands are in [new session commands](https://github.com/joewuca/varity/tree/master/VARITY_new_session_commands.txt).
+To apply VARITY framework, please read [VARITY user guide](https://github.com/joewuca/varity/tree/master/VARITY_user_guide.pdf) and use  [VARITY python scripts](https://github.com/joewuca/varity/tree/master/python). 
 
 ### Technical Support
 Please contact joe.wu.ca@gmail.com for technical support

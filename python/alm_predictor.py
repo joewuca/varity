@@ -33,7 +33,6 @@ class alm_predictor:
         self.tune_tree_nums_before_test = 0
         self.tune_tree_nums_during_cv = 0
         self.shuffle_features =[]
-        self.load_existing_model = 0
         self.eval_obj = 'auc'
         self.trials_mv_step = 0
         self.use_extra_train_data = 2
@@ -42,10 +41,81 @@ class alm_predictor:
 
         alm_fun.show_msg (self.log,self.verbose,'Class: [alm_predictor] [__init__] ' + self.name + ' ...... @' + str(datetime.now()))
 
-        if self.type == 1: # VARITY predictors          
-            self.hyperopt_hps = self.create_hyperopt_hps() # create hp_config_dict and hyperopt_hps
+        if self.type == 1: # VARITY predictors      
+            if self.hp_tune_type == 'hyperopt':
+                self.create_hyperopt_hps() # create hp_config_dict and hyperopt_hps
+            if self.hp_tune_type == 'hyperopt_logistic':
+                self.create_hyperopt_logistic_hps()
         
-        
+
+    def create_hyperopt_logistic_hps(self):
+        self.hyperopt_hps = {} 
+        self.hp_default = {}
+        extra_data = self.data_instance.extra_train_data_df_lst[0]
+        core_data =  self.data_instance.train_data_index_df
+        for cur_hp_name in self.hyperparameter.keys():            
+            cur_hp_dict =  self.hyperparameter[cur_hp_name]
+#             print (cur_hp_name)  
+            cur_hp_dict['enable'] = 1              
+            if cur_hp_dict['hp_type'] in [1,2]:
+                if self.name not in self.qip[cur_hp_dict['qip']]['predictors']:  # The qip is not in use for the current predictor
+                    cur_hp_dict['enable'] = 0         
+                if self.qip[cur_hp_dict['qip']]['enable'] == 0 :  # The qip is not enabled
+                    cur_hp_dict['enable'] = 0                                             
+                      
+            if cur_hp_dict['enable'] == 1:                    
+                if ((cur_hp_dict['from'] == 'None') | (cur_hp_dict['to'] == 'None')) & (cur_hp_dict['hp_type'] == 2): #determine range of the weight function hyperparameters
+                    
+                    ####order the affect extra data set by informative property and its index to make sure the rank of the order is identical very time
+                    cur_qip = cur_hp_dict['qip']
+                    cur_set_type = self.qip[cur_qip]['set_type']
+                    cur_set_list = self.qip[cur_qip]['set_list']
+                    cur_qip_col = self.qip[cur_qip]['qip_col']
+                    cur_qip_normalized_col = cur_qip + '_normalized'
+                    cur_qip_direction = self.qip[cur_qip]['direction']
+                    
+                    if cur_set_type == 'core':
+                        data = core_data
+                    if cur_set_type == 'addon':
+                        data = extra_data
+                    
+                    cur_qip_indices = data['set_name'].isin(cur_set_list)                                                            
+                    data[cur_qip_normalized_col] = np.nan                                    
+                    cur_max_value = np.nanmax(data.loc[cur_qip_indices,cur_qip_col])
+                    cur_min_value = np.nanmin(data.loc[cur_qip_indices,cur_qip_col])
+                                    
+                    data.loc[cur_qip_indices,cur_qip_normalized_col] = (data.loc[cur_qip_indices,cur_qip_col] - cur_min_value)/(cur_max_value-cur_min_value)                    
+                    cur_data = data.loc[cur_qip_indices,:]                    
+                    cur_data['org_index'] = cur_data.index
+                    cur_data = cur_data.sort_values([cur_qip_col,'org_index'])
+                    cur_data = cur_data.reset_index(drop = True )
+                    #### extract candidate midpoints 
+                    mid_points = []
+                    cur_data_interval = cur_hp_dict['data_interval']
+                    max_index = cur_data.index.max()
+                    for idx in range(0,max_index,cur_data_interval):
+                        mid_points.append(cur_data.loc[idx,cur_qip_normalized_col])
+                    
+                    #### add two possible midpoints out of range 0 to 1, to take care the case that the smallest and largest midpoint values are constraint to be L/2 when they are picked as x0     
+                    mid_points.append(-1.0)
+                    mid_points.append(2.0)                              
+                    cur_hp_dict['values'] = mid_points                  
+                else:                                    
+                    cur_hp_dict['values'] = list(np.arange(cur_hp_dict['from'], cur_hp_dict['to'], cur_hp_dict['step'],dtype=cur_hp_dict['data_type']))
+                    cur_hp_dict['values'].append(cur_hp_dict['to']) # np.arrange doesn't include stop point, so we manully add to it
+                    
+                
+                # remove duplicates and sort the values
+                cur_hp_dict['values'] = list(set(cur_hp_dict['values']))
+                cur_hp_dict['values'].sort()   
+                                    
+                # round to significant_digits
+                if str(cur_hp_dict['significant_digits']) != 'None':
+                    cur_hp_dict['values'] = np.round(cur_hp_dict['values'],cur_hp_dict['significant_digits']) 
+                                          
+                self.hyperopt_hps[cur_hp_name] = hyperopt.hp.choice(cur_hp_name,cur_hp_dict['values'])     
+                self.hp_default[cur_hp_name] = cur_hp_dict['default']
+                        
     def create_hyperopt_hps(self):    
         hyperopt_hps = {}               
         extra_data = self.data_instance.extra_train_data_df_lst[0]
@@ -179,7 +249,7 @@ class alm_predictor:
                     self.hp_default[cur_hp] = hp['default']
                     self.hp_parameters['hyperopt'].append(cur_hp)
 #                     cur_weights = np.linspace(start = hp['from'], stop = hp['to'], num = 101)
-                    cur_weights = np.arange( hp['from'],  hp['to'] + hp['step'], hp['step'])
+                    cur_weights = np.round(np.arange( hp['from'],  hp['to'] + hp['step'], hp['step']),2)
                     self.hp_values[cur_hp] =  cur_weights
                     self.hp_indices[cur_hp] = {} 
                     self.hp_rest_indices[cur_hp] = {}

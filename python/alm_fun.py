@@ -261,6 +261,25 @@ def get_classification_metrics(metrics_name, round_digits, y, y_predicted):
         result = round(metrics.log_loss(y, y_predicted), round_digits)
     return result
 
+def score_to_precision(y,y_predicted,cutoff):
+    y = np.array(np.squeeze(y))
+    y_predicted = np.array(np.squeeze(y_predicted))
+    notnull_idx = ~np.isnan(y_predicted)
+    y_predicted = y_predicted[notnull_idx]
+    y = y[notnull_idx]
+    size = len(y)  
+    y_p = np.zeros(size)
+    y_p[y_predicted > cutoff] = 1     
+    tp = ((y == 1) & (y_p == 1)).sum() 
+    fp = ((y == 0) & (y_p == 1)).sum()
+    tn = ((y == 0) & (y_p == 0)).sum()
+    fn = ((y == 1) & (y_p == 0)).sum()  
+
+    prior = get_prior(y)
+    precision= tp / (tp + fp)
+    balanced_precision = precision*(1-prior)/(precision*(1-prior) + (1-precision)*prior)
+    return(balanced_precision)
+
 def classification_metrics(y, y_predicted, cutoff= 0.5, test_precision=0.9, test_recall=0.9,find_best_cutoff=0):    
     y_classes = np.unique(y)
 
@@ -330,15 +349,17 @@ def classification_metrics_sub(y, y_predicted, cutoff = 0.5, test_precision = 0.
     # Tune the cutoff for the best MCC
     #***************************************************************************************** 
     if find_best_cutoff == 1:  
-        all_cutoffs = y_predicted.unique()               
+        all_cutoffs = set(y_predicted)               
         mcc = -1
         cutoff = -inf       
         for cur_cutoff in all_cutoffs:
             cur_y_p = np.zeros(len(y_predicted))
             cur_y_p[y_predicted > cur_cutoff] = 1
             cur_mcc = metrics.matthews_corrcoef(y, cur_y_p)
+#             print ('cutoff:' + str(cur_cutoff) + ' mcc:' + str(cur_mcc))
             if cur_mcc >= mcc:
                 cutoff = cur_cutoff
+                mcc = cur_mcc
     #*****************************************************************************************                
     # Metrics based on a specific value of cutoff (via input or tune for the best mcc)
     #*****************************************************************************************
@@ -351,7 +372,7 @@ def classification_metrics_sub(y, y_predicted, cutoff = 0.5, test_precision = 0.
     fn = ((y == 1) & (y_p == 0)).sum()  
     
     prior = get_prior(y)
-    fpt = fp / (fp + fn) # false postive tendency?
+    fpt = fp / (fp + fn) # false Positive tendency?
     precision= tp / (tp + fp)
     balanced_precision = precision*(1-prior)/(precision*(1-prior) + (1-precision)*prior)
     recall = tp / (tp + fn)
@@ -391,15 +412,13 @@ def classification_metrics_sub(y, y_predicted, cutoff = 0.5, test_precision = 0.
     
     return([y_p, metrics_dict])
 
-def get_interpreted_x_from_y (new_y,x,y,type):
+def get_interpreted_x_from_y (new_y,x,y,type = 'first_intersection'):
     new_x = np.nan
-    if type == 'first_intersection':    
-        sorted_indices = list(np.argsort(x))   
-    if type == 'last_intersection':    
-        sorted_indices = list(np.argsort(x))[::-1]            
-    x = x[sorted_indices]
-    y = y[sorted_indices] 
-   
+
+    if type == 'last_intersection':  
+        x = x[::-1]
+        y = y[::-1]  
+
     for i in range(len(x)):            
         if y[i] == new_y: 
             new_x = x[i]
@@ -408,17 +427,17 @@ def get_interpreted_x_from_y (new_y,x,y,type):
             if (new_y-y[i])*(new_y-y[i+1]) < 0: 
                 new_x = x[i] + (new_y- y[i])*(x[i+1] - x[i])/(y[i+1] - y[i])    
                 break    
-                    
+                     
+ 
+ 
     return(new_x)
-    
-def get_interpreted_y_from_x (new_x,x,y,type):
+     
+def get_interpreted_y_from_x (new_x,x,y,type = 'first_intersection'):
     new_y = np.nan
-    if type == 'first_intersection':    
-        sorted_indices = list(np.argsort(y))   
     if type == 'last_intersection':    
-        sorted_indices = list(np.argsort(y))[::-1]            
-    x = x[sorted_indices]
-    y = y[sorted_indices] 
+        x = x[::-1]
+        y = y[::-1]  
+
    
     for i in range(len(y)):            
         if x[i] == new_x: 
@@ -460,7 +479,7 @@ def cal_pr_values(precisions,recalls,test_precision = 0.9,test_recall = 0.9):
     new_up_recalls = recalls[up_precisions>0]
     up_auprc = -np.sum(np.diff(new_up_recalls) * np.array(new_up_precisions)[:-1])
     
-    rfp = get_interpreted_x_from_y(test_precision,recalls,precisions,type = 'last_intersection')
+    rfp = get_interpreted_x_from_y(test_precision,recalls,precisions,type = 'first_intersection')
     pfr = get_interpreted_y_from_x(test_recall,recalls,precisions,type = 'last_intersection')
     
     return [ auprc,up_auprc,rfp,pfr]
@@ -608,7 +627,7 @@ def plot_fpt_ax(y, y_predicted, ax_aufpt, fig_w, fig_h, cutoff=np.nan, test_prec
     
     ax_aufpt.set_title(title_name, size=40)
     ax_aufpt.set_xlabel('Positive prediction count ratio',size = 35)
-    ax_aufpt.set_ylabel('False Postive Trend (FP/FP+FN)',size = 35) 
+    ax_aufpt.set_ylabel('False Positive Trend (FP/FP+FN)',size = 35) 
     ax_aufpt.tick_params(labelsize=30)
     ax_aufpt.set_xlim(0, 1)
     ax_aufpt.set_ylim(0, 1.05) 
@@ -648,20 +667,21 @@ def plot_fnt_ax(y, y_predicted, ax_aufnt, fig_w, fig_h, cutoff=np.nan, test_prec
     
     ax_aufnt.set_title(title_name, size=40)
     ax_aufnt.set_xlabel('Positive count ratio',size = 35)
-    ax_aufnt.set_ylabel('False Postive Trend (FN/FP+FN)',size = 35) 
+    ax_aufnt.set_ylabel('False Positive Trend (FN/FP+FN)',size = 35) 
     ax_aufnt.tick_params(labelsize=30)
     ax_aufnt.set_xlim(0, 1)
     ax_aufnt.set_ylim(0, 1.05) 
     return(ax_aufnt)
 
 def plot_cv_prc_ax(mean_interp_recalls,mean_interp_precisions, interp_recalls_upper,interp_recalls_lower, ax, test_precision=0.9, test_recall=0.9,color = 'black',size_factor = 1):  
-    ax.margins(1,1)
+    ax.margins(1,1)    
+#     print (str(list(mean_interp_recalls)[list(mean_interp_precisions).index(0.9)]))
     ax.plot(mean_interp_recalls,mean_interp_precisions, color =  color,lw=3, alpha=.8)
     ax.fill_betweenx(mean_interp_precisions, interp_recalls_lower, interp_recalls_upper, color='lightgrey', alpha=.2)               
     ax.plot([0, 1], [test_precision, test_precision], linestyle = '--', color = 'black', lw=2)   
-    ax.set_xlabel('Recall',size = 35*size_factor,labelpad = 10*size_factor)
-    ax.set_ylabel('Precision',size = 35*size_factor,labelpad = 10*size_factor)
-    ax.tick_params(labelsize=25*size_factor,pad = 20)
+    ax.set_xlabel('Recall',size = 40*size_factor,labelpad = 10*size_factor)
+    ax.set_ylabel('Precision',size = 40*size_factor,labelpad = 10*size_factor)
+    ax.tick_params(labelsize=35*size_factor,pad = 20)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1.05)     
     ax.set_xticklabels(['0','0.2','0.4','0.6','0.8','1'])     
@@ -672,9 +692,9 @@ def plot_cv_roc_ax(mean_interp_fprs,mean_interp_tprs, interp_fprs_upper,interp_f
     ax.margins(1,1)
     ax.plot(mean_interp_fprs,mean_interp_tprs, color =  color,lw=3, alpha=.8)
     ax.fill_betweenx(mean_interp_tprs, interp_fprs_lower, interp_fprs_upper, color='lightgrey', alpha=.2)               
-    ax.set_xlabel('True Postive Rate',size = 35*size_factor,labelpad = 10*size_factor)
-    ax.set_ylabel('False Postive Rate',size = 35*size_factor,labelpad = 10*size_factor) 
-    ax.tick_params(labelsize=25*size_factor,pad = 20)
+    ax.set_xlabel('False Positive Rate',size = 40*size_factor,labelpad = 10*size_factor)
+    ax.set_ylabel('True Positive Rate',size = 40*size_factor,labelpad = 10*size_factor) 
+    ax.tick_params(labelsize=35*size_factor,pad = 20)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1.05)
     ax.set_xticklabels(['0','0.2','0.4','0.6','0.8','1'])     
@@ -915,6 +935,8 @@ def bin_data(x, n_bins):
     bins = np.linspace(x.min(), x.max(), num=n_bins)    
     return np.digitize(x, bins) 
 
+
+
 def normalize_data(x):
     x_max = np.nanmax(x)
     x_min  = np.nanmin(x)
@@ -996,6 +1018,21 @@ def plot_stacked_barplot_ax(ax,data,title, title_size, x_label, y_label, label_s
     red_patch = patches.Patch(color='#C0504D', label='Putatively Pathogenic')
     green_patch = patches.Patch(color='#158066', label='Putatively Benign')
     ax.legend(handles=[red_patch,green_patch],loc = 2,fontsize = legend_size)
+    
+def plot_logistic (data,k,L,x0,plot_name):
+    plt.rcParams["font.family"] = "Helvetica"    
+    fig = plt.figure(figsize=(20,30))
+    
+#     data = data  * 100
+#     x0 = x0 *100
+    ax = plt.subplot() 
+
+    for k in range(100):    
+        ax.scatter (data, L/(1+np.exp(0-k*(data-x0))),color='black')
+    fig.tight_layout()
+    plt.savefig(plot_name)          
+             
+        
     
 def plot_barplot(data, fig_w, fig_h, title, title_size, x_label, y_label, label_size, tick_size, ylim_min, ylim_max, plot_name,ci_available = 0):
     plt.rcParams["font.family"] = "Helvetica"    

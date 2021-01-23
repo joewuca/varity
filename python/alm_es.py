@@ -36,7 +36,8 @@ class alm_es:
         self.flip_contamination_train = 0
         self.flip_contamination_test = 0
 
-    def run(self, features, dependent_variable, ml_type, train, test, extra_train= None, validation = None, alm_predictor = None, model_file = None):            
+    def run(self, features, dependent_variable, ml_type, core_train, test, extra_train= None, validation = None, alm_predictor = None, model_file = None): 
+                           
         if alm_predictor is None:
             use_extra_train_data=0
             nofit = 0
@@ -61,7 +62,7 @@ class alm_es:
         # Run feature engineer fucntion if necessary
         #####********************************************************************************************             
         if if_feature_engineer:
-            [train,test] = self.feature_engineer(train,test)
+            [core_train,test] = self.feature_engineer(core_train,test)
             
         #####********************************************************************************************
         # If features are nested list, flat the list of list if necessary
@@ -75,12 +76,12 @@ class alm_es:
         if len(shuffle_features) > 0 :                        
             for f in shuffle_features:                
                 if f  != '':
-                    train[f] = np.random.permutation(train[f])
+                    core_train[f] = np.random.permutation(core_train[f])
             
         #####********************************************************************************************
-        # copy the train,extra_train,test and validation dataset
+        # copy the core_train,extra_train,test and validation dataset
         #####********************************************************************************************                  
-        train = train.copy()
+        core_train = core_train.copy()
         test = test.copy()
         if (tune_tree_num == 1) & (validation is not None):
             validation = validation.copy()  
@@ -90,60 +91,88 @@ class alm_es:
                 extra_train = extra_train.copy()
 
         #####********************************************************************************************
-        # Remove extra training examples that weight == 0 
-        #####********************************************************************************************                                
-        if self.weighted_example == 1:  
-            extra_train = extra_train.loc[(extra_train['weight'] != 0),:]
-
-        #####********************************************************************************************
         # Combine train and extra_train dataset to make the final training dataset 
         #####********************************************************************************************
         if use_extra_train_data == 0:  # do not use extra training data
-            final_train = train 
+            all_train = core_train 
             
         if use_extra_train_data == 1:  # only use extra training data
-            final_train = extra_train      
+            all_train = extra_train      
             
         if use_extra_train_data == 2:  # use extra training data directly + training data, no prediction
-            final_train = pd.concat([extra_train,train])          
-#             final_train = final_train.sort_index()  
+            all_train = pd.concat([extra_train,core_train])          
+#             all_train = all_train.sort_index()  
         #####********************************************************************************************
         # Reorder the traning data and form groups for "ranking" loss function
         #####********************************************************************************************
-#         final_train = final_train.sort_values('p_vid')
-#         group_counts = final_train['p_vid'].value_counts().sort_index()        
-#         group_counts = [5000,5000,len(final_train)-10000]
-        group_counts = [len(final_train)]
-        query_group = np.array(group_counts)                 
-        group_weights = np.ones(len(query_group))
+#         all_train = all_train.sort_values('p_vid')
+#         group_counts = all_train['p_vid'].value_counts().sort_index()        
+#         group_counts = [5000,5000,len(all_train)-10000]
+#         group_counts = [len(all_train)]
+#         query_group = np.array(group_counts)                 
+#         group_weights = np.ones(len(query_group))
         
         #####********************************************************************************************
         # Separate features , labels or weight of the test and final training set
-        #####********************************************************************************************
-        
-        
-        core_train_x = train[features]      
-        core_train_y = train[dependent_variable]          
-        train_x = final_train[features]
-        train_y = final_train[dependent_variable]        
+        #####********************************************************************************************        
+        #### first check if core_train and test have all the features, if not, add feature columns with np.nan
+   
+        core_train_x = core_train[features]      
+        core_train_y = core_train[dependent_variable] 
+        extra_train_x = extra_train[features]      
+        extra_train_y = extra_train[dependent_variable]              
         test_x = test[features]
         test_y = test[dependent_variable]
         test_index = test.index
         if validation is not None:
             validation_x = validation[features]
-            validation_y = validation[dependent_variable]            
+            validation_y = validation[dependent_variable]       
+                        
+        #####********************************************************************************************
+        # Remove extra training examples that weight == 0 
+        #####********************************************************************************************                                
+        if self.weighted_example == 1:        
+                       
+                       
+            print('Core examples for training: ' + str(len(core_train_y)) + '[P:' + str(sum(core_train_y==1)) + ' N:' + str(sum(core_train_y==0)) + ']' + \
+                  ',  weights:' + str(core_train['weight'].sum()) + '[P:' + str(core_train['weight'][core_train_y==1].sum()) + ' N:' + str(core_train['weight'][core_train_y==0].sum()) + ']')
+                           
+            print('Extra examples for training: ' + str(len(extra_train_y)) + '[P:' + str(sum(extra_train_y==1)) + ' N:' + str(sum(extra_train_y==0))  + ']' + \
+                  ',  weights:' + str(extra_train['weight'].sum()) +  '[P:' + str(extra_train['weight'][extra_train_y==1].sum()) + ' N:' + str(extra_train['weight'][extra_train_y==0].sum()) + ']')
+ 
+            print('All examples for training: ' + str(len(all_train[dependent_variable])) + '[P:' + str(sum(all_train[dependent_variable]==1)) + ' N:' + str(sum(all_train[dependent_variable]==0))  + ']' + \
+                  ',  weights:' + str(all_train['weight'].sum()) + '[P:' + str(all_train['weight'][all_train[dependent_variable]==1].sum()) + ' N:' + str(all_train['weight'][all_train[dependent_variable]==0].sum()) + ']')
         
-        if 'weight' in final_train.columns:
-            weights = final_train['weight']        
-            negative_idx = train_y == 1
-            positive_idx = train_y == 0            
+            all_train = all_train.loc[(all_train['weight'] != 0),:]   
+              
+            print('All examples for training after removing examples with ZERO weight: ' + str(len(all_train[dependent_variable])) + '[P:' + str(sum(all_train[dependent_variable]==1)) + ' N:' + str(sum(all_train[dependent_variable]==0))  + ']' + \
+                  ',  weights:' + str(all_train['weight'].sum()) + '[P:' + str(all_train['weight'][all_train[dependent_variable]==1].sum()) + ' N:' + str(all_train['weight'][all_train[dependent_variable]==0].sum()) + ']')
+         
+        #####********************************************************************************************
+        # Feature and labels for all training examples  
+        #####********************************************************************************************             
+        all_train_x = all_train[features]
+        all_train_y = all_train[dependent_variable]
+        
+        #####********************************************************************************************
+        # Determine the final weights (after balancing positive and negative weights)
+        #####********************************************************************************************        
+        if self.weighted_example == 1:            
+            weights = all_train['weight']        
+            negative_idx = all_train_y == 0
+            positive_idx = all_train_y == 1            
             negative_weights = weights[negative_idx].sum()
-            positive_weights = weights[positive_idx].sum()            
-            prior_weight = negative_weights/positive_weights
-            weights[positive_idx] = weights[positive_idx] * prior_weight #balance negative and positive weights            
+            positive_weights = weights[positive_idx].sum()                        
+            weight_ratio = negative_weights/positive_weights
+            print ('Total negative weights: ' + str(negative_weights))
+            print ('Total positive weights: ' + str(positive_weights))
+            weights[positive_idx] = weights[positive_idx] * weight_ratio #balance negative and positive weights
+            print ('weights ratio negative/postive :' + str(weight_ratio))                 
+            print ('Total weights after balancing: ' + str(weights.sum()))                   
         else:
-            weights = [1] * final_train.shape[0]
-        
+            weights = [1] * all_train.shape[0]
+            
+             
         #####********************************************************************************************
         # Flip the label for training and test set for contamination analysis if necessary
         #####********************************************************************************************                             
@@ -154,7 +183,7 @@ class alm_es:
                
         if self.flip_contamination_train == 1: 
             train_contamination = train['contamination']         
-            train_y = [list(train_y)[i] if list(train_contamination)[i] != 1 else abs(list(train_y)[i] - 1) for i in range(len(train_y))]
+            all_train_y = [list(all_train_y)[i] if list(train_contamination)[i] != 1 else abs(list(all_train_y)[i] - 1) for i in range(len(all_train_y))]
             print ("Train contamination " + str((train_contamination == 1).sum()) + " flipped!")  
 
         load_model = 0
@@ -168,7 +197,7 @@ class alm_es:
             # Reset the estimator for every run 
             #####********************************************************************************************        
             if (self.estimator != None):
-                n_estimators = self.estimator.n_estimators
+                n_estimators = int(self.estimator.n_estimators)
                 max_depth = self.estimator.max_depth
                 learning_rate = self.estimator.learning_rate
                 gamma = self.estimator.gamma
@@ -194,24 +223,24 @@ class alm_es:
                         if tune_tree_num == 1:
                             self.estimator.n_estimators = 1000
                             if 'rank' in self.estimator.objective:   
-                                self.estimator.fit(train_x, train_y, group = query_group, sample_weight = group_weights,verbose = False, eval_set = [(validation_x[features],validation_y)],early_stopping_rounds = 50,eval_metric = eval_obj)
+                                self.estimator.fit(all_train_x, all_train_y, group = query_group, sample_weight = group_weights,verbose = False, eval_set = [(validation_x[features],validation_y)],early_stopping_rounds = 50,eval_metric = eval_obj)
                             else:
-                                self.estimator.fit(train_x, train_y, sample_weight = weights,verbose = False, eval_set = [(validation_x[features],validation_y)],early_stopping_rounds = 50,eval_metric = eval_obj)
+                                self.estimator.fit(all_train_x, all_train_y, sample_weight = weights,verbose = False, eval_set = [(validation_x[features],validation_y)],early_stopping_rounds = 50,eval_metric = eval_obj)
                         else:
                             if 'rank' in self.estimator.objective:                            
-                                self.estimator.fit(train_x,train_y, group = query_group,sample_weight = group_weights)
+                                self.estimator.fit(all_train_x,all_train_y, group = query_group,sample_weight = group_weights)
                             else:
                                 print ("Start fit the model : " + str(datetime.now()))
-                                print ("Training examples: " + str(train_x.shape[0]) + " Training weights: " + str(weights.sum()) + " # of Trees: " + str(self.estimator.n_estimators))                                                       
-                                self.estimator.fit(train_x,train_y,sample_weight = weights)                                 
+                                print ("Training examples: " + str(all_train_x.shape[0]) + " Training weights: " + str(weights.sum()) + " # of Trees: " + str(self.estimator.n_estimators))                                                       
+                                self.estimator.fit(all_train_x,all_train_y,sample_weight = weights)                                 
                                 print ("End fit the model : " + str(datetime.now()))                                                                                                                                                                                  
                     else:
                         if 'rank' in self.estimator.objective:                             
-                            self.estimator.fit(train_x, train_y,group = query_group)
+                            self.estimator.fit(all_train_x, all_train_y,group = query_group)
                         else:
-                            self.estimator.fit(train_x, train_y)
+                            self.estimator.fit(all_train_x, all_train_y)
         else:
-            alm_fun.show_msg (self.log,self.verbose,'Existing model loaded.')
+            alm_fun.show_msg (self.log,self.verbose,'Existing model ' + model_file + ' loaded.')
              
         #####********************************************************************************************
         # Record the feature importance
@@ -263,12 +292,12 @@ class alm_es:
             test_score_df['spc'] = spc
 
             if (self.estimator == None) | ((self.single_feature_as_prediction == 1) & (len(features) == 1)):
-                core_train_y_predicted = np.array(list(np.squeeze(train_x[features])))
+                core_train_y_predicted = np.array(list(np.squeeze(all_train_x[features])))
             else:
                 try:
-                    core_train_y_predicted = self.estimator.predict_proba(train_x[features])[:, 1]
+                    core_train_y_predicted = self.estimator.predict_proba(all_train_x[features])[:, 1]
                 except:
-                    core_train_y_predicted = self.estimator.predict(train_x[features]) 
+                    core_train_y_predicted = self.estimator.predict(all_train_x[features]) 
             
                 if self.prediction_transformation is not None:
                     core_train_y_predicted = self.prediction_transformation(core_train_y_predicted) 
@@ -328,7 +357,7 @@ class alm_es:
              
             #get the shap value for all training data
             if shap_train_interaction == 1:
-                X = xgb.DMatrix(train_x)
+                X = xgb.DMatrix(all_train_x)
                 shap_output_train_interaction = self.estimator.get_booster().predict(X, ntree_limit=-1, pred_interactions=True)  
             else:
                 shap_output_train_interaction = None                    
@@ -386,7 +415,7 @@ class alm_es:
                 core_train_y_predicted = self.prediction_transformation(core_train_y_predicted) 
             
             core_train_score_df = pd.DataFrame(np.zeros(1), index=['neg_log_loss']).transpose()                             
-            core_train_score_df['neg_log_loss'] = alm_fun.get_classification_metrics('neg_log_loss', 4, train_y, core_train_y_predicted_probs)
+            core_train_score_df['neg_log_loss'] = alm_fun.get_classification_metrics('neg_log_loss', 4, all_train_y, core_train_y_predicted_probs)
                
             test_score_df = pd.DataFrame(np.zeros(1), index=['neg_log_loss']).transpose()                             
             test_score_df['neg_log_loss'] = alm_fun.get_classification_metrics('neg_log_loss', 4, test_y, test_y_predicted_probs) 
@@ -411,6 +440,7 @@ class alm_es:
         return_dict ['feature_importance'] = feature_importance.transpose().sort_values([0])
         return_dict ['shap_output_test_interaction'] = shap_output_test_interaction
         return_dict ['shap_output_train_interaction'] = shap_output_train_interaction
+        return_dict ['all_train_indices'] = all_train.index
         return_dict ['model'] = self.estimator
         
         if (self.estimator == None) | ((self.single_feature_as_prediction == 1) & (len(features) == 1)):
