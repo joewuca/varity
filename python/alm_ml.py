@@ -76,7 +76,7 @@ class alm_ml:
 #             new_runtime[runtime['batch_id_name'] + 's'] = str(list(varity_run_ids_df.loc[varity_run_ids_df['varity_batch_id'] == varity_batch_id,runtime['batch_id_name']].unique())).replace("'","")                        
             new_runtime['varity_batch_id'] = varity_batch_id                                    
             new_runtime['run_on_node'] = 1
-            new_runtime['hp_dict_file'] = self.prefix(new_runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'   
+            new_runtime['hp_dict_file'] = self.fun_perfix(new_runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'   
             new_runtime['action'] = runtime['varity_action']                        
             new_runtime['job_name'] = runtime['varity_action']  + '_' + new_runtime['batch_id'] +  '_' + varity_batch_id                
             new_runtime['cur_result'] = self.project_path + 'output/log/' + runtime['varity_action'] + '_' + varity_batch_id + '_done.log'                        
@@ -128,7 +128,7 @@ class alm_ml:
         varity_batchid_df[[runtime['batch_id_name'],'varity_batch_id']].to_csv(self.project_path + 'output/csv/' + runtime['varity_action'] + '_' +  runtime['batch_id'] + '_varity_batch_id.csv',index = False)        
         return(varity_batchid_df)                  
 
-    def prefix(self,runtime, folder, cv_flag = 0, with_path = 1, target_action = '',ignore_trails_mv_size = 0):
+    def fun_perfix(self,runtime, folder, cv_flag = 0, with_path = 1, target_action = '',ignore_trails_mv_size = 0):
         
         if target_action  == '':
             target_action = runtime['action']
@@ -138,19 +138,19 @@ class alm_ml:
         else:
             predictor_name = runtime['predictor'] + '_mv_' + str(runtime['trials_mv_size'])
             
-        if runtime['hp_tune_type'] == 'hyperopt_logistic':                    
-            if (cv_flag == 1) | (runtime['cur_test_fold'] == -1):                    
-                prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + target_action + '_' + predictor_name
-            else:
-                prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + target_action + '_' + predictor_name + '_tf' + str(runtime['cur_test_fold'])
-                
-        if runtime['hp_tune_type'] == 'hyperopt': 
-            if (cv_flag == 1) | (runtime['cur_test_fold'] == -1):                    
-                prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + predictor_name
-            else:
-                prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + predictor_name + '_tf' + str(runtime['cur_test_fold'])
-                            
-                
+#         if runtime['hp_tune_type'] == 'hyperopt_logistic':                    
+        if (cv_flag == 1) | (runtime['cur_test_fold'] == -1):                    
+            prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + target_action + '_' + predictor_name
+        else:
+            prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + target_action + '_' + predictor_name + '_tf' + str(runtime['cur_test_fold'])
+            
+#         else:            
+#             if (cv_flag == 1) | (runtime['cur_test_fold'] == -1):                    
+#                 prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + predictor_name
+#             else:
+#                 prefix = self.project_path +'/output/' + folder + '/' + runtime['session_id'] + '_' + predictor_name + '_tf' + str(runtime['cur_test_fold'])
+#                             
+#                 
         if with_path == 0:
             prefix = prefix.split('/')[-1]
         return(prefix)    
@@ -174,8 +174,8 @@ class alm_ml:
         # Define hyperopt search space
         #********************************************************************************************
         hyperopt_hps = alm_predictor.hyperopt_hps 
-        available_trials_file = self.prefix(runtime,'npy') + '_trials.pkl'
-        available_trials_result_file = self.prefix(runtime,'csv') + '_trial_results.txt'
+        available_trials_file = self.fun_perfix(runtime,'npy') + '_trials.pkl'
+        available_trials_result_file = self.fun_perfix(runtime,'csv') + '_trial_results.txt'
         if  os.path.isfile(available_trials_file):                        
             [cur_trials_result,cur_trials_df,X] = self.get_trials(available_trials_file,available_trials_result_file)
             alm_fun.show_msg (runtime['log'],1,"Previous trials have been loaded.")            
@@ -201,6 +201,8 @@ class alm_ml:
         alm_fun.show_msg (runtime['log'],1,"End Time: " + str(datetime.now()))        
         alm_fun.show_msg (runtime['log'],1,"***************************************************************")
     
+    
+    
     def weights_opt_sp(self,runtime):
         alm_predictor = self.proj.predictor[runtime['predictor']]
         filtering_hp_values = alm_predictor.hp_mv_values[runtime['filtering_hp']]
@@ -210,6 +212,46 @@ class alm_ml:
             new_runtime['filtering_hp_value'] = filtering_hp_value
             alm_fun.show_msg (runtime['log'],self.verbose,'Running moving analysis on ' + runtime['filtering_hp'] + ' at moving window ' + str(filtering_hp_value) + '......')            
             self.fun_validation_cv_prediction_sp(new_runtime)
+            
+                
+    def fun_mv_analysis(self,runtime):
+        alm_predictor = self.proj.predictor[runtime['predictor']]        
+        num_mv_windows = alm_predictor.qip[runtime['mv_qip']]['mv_data_points']
+        cur_log = cur_log = self.project_path + 'output/log/fun_mv_analysis' + runtime['batch_id'] + '.log'
+        cur_jobs= {}
+        for mv_id in ['none'] + list(range(num_mv_windows)) + ['all']:
+            new_runtime = runtime.copy()                                                  
+            new_runtime['hp_tune_type'] = 'mv_analysis'  
+            new_runtime['mv_id'] = mv_id
+            new_runtime['run_on_node'] = 1    
+            new_runtime['action'] = 'test_cv_prediction'                                                       
+            new_runtime['cur_fold_result'] = self.fun_perfix(new_runtime, 'csv',1) + '_hp_test_cv_result_' + runtime['mv_qip'] + '_mv_' + str(mv_id) + '.csv'                
+            new_runtime['hp_dict_file'] = 'na'
+            new_runtime['batch_id'] =  str(alm_fun.get_random_id(10))  
+            new_runtime['job_name'] = self.varity_obj.set_job_name(new_runtime)            
+#             if not os.path.isfile(new_runtime['cur_fold_result']):
+            alm_fun.show_msg (cur_log,1, 'Run prediction on moving window ID: '  + str(mv_id) + '......')                                                 
+            if (runtime['cluster'] == 1) :                                      
+                [job_id,job_name,result_dict] = self.varity_obj.varity_action(new_runtime)
+                cur_jobs[job_name] = []
+                cur_jobs[job_name].append(new_runtime['cur_fold_result'])
+                cur_jobs[job_name].append(job_id)
+                cur_jobs[job_name].append(new_runtime)                     
+            else:                             
+                self.fun_test_cv_prediction(new_runtime)       
+                
+        if runtime['cluster'] == 1:
+            if self.varity_obj.fun_monitor_jobs(cur_jobs,cur_log,runtime) == 1:
+                alm_fun.show_msg (cur_log,1, 'Batch: '  +  runtime['batch_id'] + ' all results are done,start to gathering results......')                              
+        
+        mv_analysis_result_file = self.fun_perfix(runtime, 'csv',1) + '_' + runtime['mv_qip'] + '.csv'
+        for mv_id in ['none'] + list(range(num_mv_windows)) + ['all']:  
+            cur_mv_result = pd.read_csv(self.fun_perfix(runtime, 'csv',1,target_action = 'test_cv_prediction') + '_hp_test_cv_result_' + runtime['mv_qip'] + '_mv_' + str(mv_id) + '.csv')
+            if mv_id == 'none':
+                cur_mv_result.to_csv(mv_analysis_result_file,index = False)                                
+            else:
+                cur_mv_result.to_csv(mv_analysis_result_file,mode = 'a', header = False ,index = False)
+            
         
     def fun_test_cv_prediction(self,runtime):        
         alm_predictor = self.proj.predictor[runtime['predictor']]
@@ -227,8 +269,8 @@ class alm_ml:
 #             new_runtime['hp_tune_type'] = 'hyperopt'      
             new_runtime['run_on_node'] = 1    
             new_runtime['action'] = 'single_fold_prediction'                                                       
-            new_runtime['cur_fold_result'] = self.prefix(new_runtime, 'npy_temp')+  '_' + new_runtime['batch_id'] + '_hp_test_single_fold_result.npy'                
-            new_runtime['hp_dict_file'] = self.prefix(new_runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
+            new_runtime['cur_fold_result'] = self.fun_perfix(new_runtime, 'npy_temp')+  '_' + new_runtime['batch_id'] + '_hp_test_single_fold_result.npy'                
+            new_runtime['hp_dict_file'] = self.fun_perfix(new_runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
             new_runtime['job_name'] = self.varity_obj.set_job_name(new_runtime)            
             if not os.path.isfile(new_runtime['cur_fold_result']):
                 alm_fun.show_msg (runtime['log'],1, 'Run prediction on test fold '  + str(cur_test_fold) + '......')                                                 
@@ -258,7 +300,7 @@ class alm_ml:
             
         for cur_test_fold in range(test_split_folds):                   
             runtime['cur_test_fold'] = cur_test_fold
-            cur_test_result = self.prefix(runtime, 'npy_temp',target_action = 'single_fold_prediction')+  '_' + runtime['batch_id'] + '_hp_test_single_fold_result.npy'
+            cur_test_result = self.fun_perfix(runtime, 'npy_temp',target_action = 'single_fold_prediction')+  '_' + runtime['batch_id'] + '_hp_test_single_fold_result.npy'
             r = np.load(cur_test_result).item()
  
             train_y_fold_predicted = r['train_y_predicted']
@@ -406,15 +448,20 @@ class alm_ml:
             cur_hp_performance_ste = test_cv_result['micro_cv_auroc_ste'].values[0]
                  
         alm_fun.show_msg (runtime['log'],1,alm_predictor.tune_obj + ': ' + str(round(cur_hp_performance,4)) + '±' + str(round(cur_hp_performance_ste,4)))
-        train_cv_result.to_csv(self.prefix(runtime, 'csv',1) + '_hp_train_cv_result.csv')
-        train_cv_results.to_csv(self.prefix(runtime, 'csv',1) + '_hp_train_cv_results.csv')
-        test_cv_result.to_csv(self.prefix(runtime, 'csv',1) +'_hp_test_cv_result.csv')
-        test_cv_results.to_csv(self.prefix(runtime, 'csv',1) + '_hp_test_cv_results.csv')
         
-        if alm_predictor.type == 1:   
-            hp_dict_df.to_csv(self.prefix(runtime, 'csv',1) + '_hp_dict_results.csv')
+        if runtime['hp_tune_type'] == 'mv_analysis':
+            test_cv_result['mv_id'] = str(runtime['mv_id'])
+            test_cv_result.to_csv(self.fun_perfix(runtime, 'csv',1) + '_hp_test_cv_result_' + runtime['mv_qip'] + '_mv_' + str(runtime['mv_id']) + '.csv',index = False)
+        else:
+            train_cv_result.to_csv(self.fun_perfix(runtime, 'csv',1) + '_hp_train_cv_result.csv')
+            train_cv_results.to_csv(self.fun_perfix(runtime, 'csv',1) + '_hp_train_cv_results.csv')
+            test_cv_result.to_csv(self.fun_perfix(runtime, 'csv',1) +'_hp_test_cv_result.csv')
+            test_cv_results.to_csv(self.fun_perfix(runtime, 'csv',1) + '_hp_test_cv_results.csv')
             
-        np.save(self.prefix(runtime, 'npy',1)+ '_test_cv_results.npy',return_dict)
+            if alm_predictor.type == 1:   
+                hp_dict_df.to_csv(self.fun_perfix(runtime, 'csv',1) + '_hp_dict_results.csv')
+                
+            np.save(self.fun_perfix(runtime, 'npy',1)+ '_test_cv_results.npy',return_dict)
         
         alm_fun.show_msg (runtime['log'],1,"End Time: " + str(datetime.now()))
         alm_fun.show_msg (runtime['log'],1,"***************************************************************")  
@@ -433,9 +480,9 @@ class alm_ml:
             target_file_name = new_runtime['target_file'].split('/')[-1].split('.')[0]
             new_runtime['job_name'] = target_file_name + '_predition_' + new_runtime['batch_id']  
             if runtime['loo'] == 1:
-                new_runtime['cur_fold_result'] = self.prefix(runtime, 'csv') + '_' + target_file_name + '_loo_predicted.csv'                                                
+                new_runtime['cur_fold_result'] = self.fun_perfix(runtime, 'csv') + '_' + target_file_name + '_loo_predicted.csv'                                                
             else:
-                new_runtime['cur_fold_result'] = self.prefix(runtime, 'csv') + '_' + target_file_name + '_predicted.csv'
+                new_runtime['cur_fold_result'] = self.fun_perfix(runtime, 'csv') + '_' + target_file_name + '_predicted.csv'
                                             
             if not os.path.isfile(new_runtime['cur_fold_result']):                                                 
                 if (runtime['cluster'] == 1) :               
@@ -451,15 +498,15 @@ class alm_ml:
                 alm_fun.show_msg (runtime['log'],1, 'Result is avaiable on ' + target_file_name +  '......')       
                     
         if runtime['cluster'] == 1:
-            batch_log = self.prefix(runtime,'log') + '_' + runtime['batch_id'] + '.log'
+            batch_log = self.fun_perfix(runtime,'log') + '_' + runtime['batch_id'] + '.log'
             if self.varity_obj.fun_monitor_jobs(cur_jobs,batch_log,runtime) == 1:
                 alm_fun.show_msg (runtime['log'],1, 'Batch: '  +  runtime['batch_id'] + ' all target predictions are done.')
                                
     def fun_test_hyperopt(self,runtime):
         alm_fun.show_msg (runtime['log'],1, 'fun_test_hyperopt started......')
         alm_predictor = self.proj.predictor[runtime['predictor']]                
-        trial_file = self.prefix(runtime,'npy',target_action = 'hp_tuning') +'_trials.pkl'
-        trial_result_file = self.prefix(runtime,'csv',target_action = 'hp_tuning') + '_trial_results.txt'
+        trial_file = self.fun_perfix(runtime,'npy',target_action = 'hp_tuning') +'_trials.pkl'
+        trial_result_file = self.fun_perfix(runtime,'csv',target_action = 'hp_tuning') + '_trial_results.txt'
         [cur_trials,cur_trials_df,x] = self.get_trials(trial_file,trial_result_file,None)
         cur_trials_df = cur_trials_df.loc[cur_trials_df['trial'] < runtime['trials_max_num'],:]
         test_hyperopt_df = None 
@@ -482,7 +529,7 @@ class alm_ml:
         for cur_tid in tids:                
 #         for cur_tid in tids:                    
             cur_hp_dict = self.get_hp_dict_from_trial_results(cur_tid,cur_trials_df,alm_predictor.hp_default)
-            cur_hp_dict_file = self.prefix(runtime,'npy_temp',target_action = 'hp_tuning',ignore_trails_mv_size = ignore_trails_mv_size) + '_tid_' + str(cur_tid) + '_hp_dict.npy'
+            cur_hp_dict_file = self.fun_perfix(runtime,'npy_temp',target_action = 'hp_tuning',ignore_trails_mv_size = ignore_trails_mv_size) + '_tid_' + str(cur_tid) + '_hp_dict.npy'
             np.save(cur_hp_dict_file,cur_hp_dict)
             new_runtime = runtime.copy()
             new_runtime['hp_dict_file'] = cur_hp_dict_file                                                                                                  
@@ -490,8 +537,8 @@ class alm_ml:
             new_runtime['run_on_node'] = 1    
             new_runtime['mem'] = 10240
             new_runtime['action'] = 'single_fold_prediction'                                         
-            new_runtime['job_name'] = self.prefix(new_runtime,'npy_temp',with_path = 0,ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id']                            
-            new_runtime['cur_fold_result'] = self.prefix(new_runtime,'npy_temp',ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id'] + '.npy'                                               
+            new_runtime['job_name'] = self.fun_perfix(new_runtime,'npy_temp',with_path = 0,ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id']                            
+            new_runtime['cur_fold_result'] = self.fun_perfix(new_runtime,'npy_temp',ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id'] + '.npy'                                               
                                             
             if not os.path.isfile(new_runtime['cur_fold_result']):                                                 
                 if (runtime['cluster'] == 1) :               
@@ -512,7 +559,7 @@ class alm_ml:
         
         i = 0  
         for cur_tid in tids:   
-            cur_result_file = self.prefix(new_runtime,'npy_temp',ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id'] + '.npy'
+            cur_result_file = self.fun_perfix(new_runtime,'npy_temp',ignore_trails_mv_size = ignore_trails_mv_size) + '_target_tid_' + str(cur_tid) + '_' + runtime['batch_id'] + '.npy'
             cur_result_dict = np.load(cur_result_file).item()
             
             cur_test_hyperopt_df = cur_trials_df.loc[cur_trials_df['tid'] == cur_tid,:]
@@ -529,7 +576,7 @@ class alm_ml:
                 test_hyperopt_df = pd.concat([test_hyperopt_df,cur_test_hyperopt_df])
                 
         target_name = runtime['target_file'].split('/')[-1].split('.')[0]
-        test_hyperopt_df.to_csv(self.prefix(runtime,'csv',ignore_trails_mv_size = ignore_trails_mv_size) + '_test_hyperopt_' + runtime['test_hyperopt_type'] + '_' + target_name + '.csv',index = False)
+        test_hyperopt_df.to_csv(self.fun_perfix(runtime,'csv',ignore_trails_mv_size = ignore_trails_mv_size) + '_test_hyperopt_' + runtime['test_hyperopt_type'] + '_' + target_name + '.csv',index = False)
             
     def fun_merge_target_prediction(self,runtime):
         ####load original target files 
@@ -575,7 +622,7 @@ class alm_ml:
         shap_output_train = None   
         test_score_df = None         
                 
-        runtime['hp_dict_file'] = self.prefix(runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
+        runtime['hp_dict_file'] = self.fun_perfix(runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
                             
         if runtime['trials_mv_size'] == -1:  
             predictor_name = alm_predictor.name
@@ -620,7 +667,7 @@ class alm_ml:
                 new_runtime['mem'] = 10240
                 new_runtime['action'] = 'single_fold_prediction'                                         
                 new_runtime['job_name'] = alm_fun.get_random_id(8)                
-                new_runtime['cur_fold_result'] = self.prefix(new_runtime, 'npy_temp')+ '_loo_' + target_name + '_' + str(target_index) + '_' + new_runtime['batch_id'] + '.npy'                                                
+                new_runtime['cur_fold_result'] = self.fun_perfix(new_runtime, 'npy_temp')+ '_loo_' + target_name + '_' + str(target_index) + '_' + new_runtime['batch_id'] + '.npy'                                                
                                                 
                 if not os.path.isfile(new_runtime['cur_fold_result']):                                                 
                     if (runtime['cluster'] == 1) :               
@@ -636,7 +683,7 @@ class alm_ml:
                     alm_fun.show_msg (runtime['log'],1, 'Result is avaiable on target fold '  + '[target_index: ' + str(target_index) + '-' + str(new_runtime['cur_target_fold']) + ']......')       
                         
             if runtime['cluster'] == 1:
-                batch_log = self.prefix(new_runtime,'log') + '_' + runtime['batch_id'] + '.log'
+                batch_log = self.fun_perfix(new_runtime,'log') + '_' + runtime['batch_id'] + '.log'
                 if self.varity_obj.fun_monitor_jobs(cur_jobs,batch_log,runtime) == 1:
                     alm_fun.show_msg (runtime['log'],1, 'Batch: '  +  runtime['batch_id'] + ' all results are done,start to gathering results......')       
                     
@@ -644,15 +691,15 @@ class alm_ml:
             # Collect results for all parallel loo predictions
             #**********************************************************************
             for target_index in loo_dict.keys():                
-                cur_fold_result = self.prefix(new_runtime, 'npy_temp')+ '_loo_' + target_name + '_' + str(target_index) + '_' + runtime['batch_id'] + '.npy'                 
+                cur_fold_result = self.fun_perfix(new_runtime, 'npy_temp')+ '_loo_' + target_name + '_' + str(target_index) + '_' + runtime['batch_id'] + '.npy'                 
                 r_loo = np.load(cur_fold_result).item()
                 cur_target_df.loc[target_index,predictor_name + '_LOO'] = r_loo['test_y_predicted'].values[0]
              
-#             save_prediction_file = self.prefix(runtime, 'csv') +  '_' + target_name + '_loo_predicted.csv'
+#             save_prediction_file = self.fun_perfix(runtime, 'csv') +  '_' + target_name + '_loo_predicted.csv'
             output_cols = output_cols + [predictor_name + '_LOO']
             cur_target_df[output_cols].to_csv(csv_output_file,index = False)
         else:            
-            runtime['cur_fold_result'] = self.prefix(runtime, 'npy') + '_' + target_name + '_' +  runtime['batch_id'] + '.npy' 
+            runtime['cur_fold_result'] = self.fun_perfix(runtime, 'npy') + '_' + target_name + '_' +  runtime['batch_id'] + '.npy' 
             runtime['single_fold_type'] = 'target'
             self.fun_single_fold_prediction(runtime)                                        
             r = np.load(runtime['cur_fold_result']).item()            
@@ -660,26 +707,26 @@ class alm_ml:
             cur_target_df = cur_target_df.reset_index(drop = True)
             test_score_df = r['test_score_df']
             print(r['feature_importance'])
-#             save_prediction_file = self.prefix(runtime, 'csv') + '_' + target_name + '_predicted.csv'
+#             save_prediction_file = self.fun_perfix(runtime, 'csv') + '_' + target_name + '_predicted.csv'
             output_cols = output_cols + [predictor_name]
             cur_target_df[output_cols].to_csv(csv_output_file,index = False)
             
             shap_output_target_interaction  = r['shap_output_test_interaction']
             if shap_output_target_interaction is not None:
-                np.save(self.prefix(runtime, 'npy') + '_' + target_name + '_target_interaction_shap.npy',shap_output_target_interaction)             
+                np.save(self.fun_perfix(runtime, 'npy') + '_' + target_name + '_target_interaction_shap.npy',shap_output_target_interaction)             
                 shap_output_target = pd.DataFrame(np.sum(shap_output_target_interaction[:,:,:],axis = 1),columns = [x +'_shap' for x in features]+['base_shap'])
                 shap_output_target['total_shap'] = shap_output_target.sum(axis=1)
                 shap_output_target = pd.concat([cur_target_df[output_cols],shap_output_target],axis = 1)                
-                shap_output_target.to_csv(self.prefix(runtime, 'csv') + '_' + target_name + '_target_shap.csv',index = False)
+                shap_output_target.to_csv(self.fun_perfix(runtime, 'csv') + '_' + target_name + '_target_shap.csv',index = False)
   
             shap_output_train_interaction  = r['shap_output_train_interaction']
             all_train_indices = r['all_train_indices']            
             if shap_output_train_interaction is not None:
-                np.save(self.prefix(runtime, 'npy') + '_' + target_name + '_train_interaction_shap.npy',shap_output_train_interaction)    
+                np.save(self.fun_perfix(runtime, 'npy') + '_' + target_name + '_train_interaction_shap.npy',shap_output_train_interaction)    
                 shap_output_train = pd.DataFrame(np.sum(shap_output_train_interaction[:,:,:],axis = 1),columns = [x +'_shap' for x in features]+['base_shap'])                
                 shap_output_train['total_shap'] = shap_output_train.sum(axis=1)
                 shap_output_train.index = all_train_indices                    
-                shap_output_train.to_csv(self.prefix(runtime, 'csv') + '_' + target_name + '_train_shap.csv',index = False)    
+                shap_output_train.to_csv(self.fun_perfix(runtime, 'csv') + '_' + target_name + '_train_shap.csv',index = False)    
                 
         result_dict = {}
         result_dict['target_predictions'] = cur_target_df[output_cols]
@@ -689,17 +736,12 @@ class alm_ml:
         np.save(npy_output_file,result_dict)
         
         return(result_dict)
-                                    
+    
+                            
     def fun_validation_cv_prediction_sp(self,runtime):
         alm_predictor = self.proj.predictor[runtime['predictor']]
         cv_split_folds = alm_predictor.data_instance.cv_split_folds   
-                     
-        #save the current hp_dict                
-        cur_hp_dict = alm_predictor.hp_default
-        cur_hp_dict[runtime['filtering_hp']] = runtime['filtering_hp_value']
-        cur_hp_dict_file = self.prefix(runtime, 'npy_temp')+   '_' + runtime['filtering_hp'] + '_' + str(runtime['filtering_hp_value']) + '_hp_dict.npy'
-        np.save(cur_hp_dict_file,cur_hp_dict)
-        
+                             
         #**********************************************************************
         # Fire parallel jobs for all test folds
         #**********************************************************************
@@ -708,7 +750,7 @@ class alm_ml:
             runtime['batch_id'] = alm_fun.get_random_id(10)
         alm_fun.show_msg (runtime['log'],1,'Start to run validation cv prediction, batch id: ' + runtime['batch_id'] + '......' )        
         for cur_validation_fold in range(cv_split_folds): 
-            cur_validation_fold_result = self.prefix(runtime, 'npy_temp') +  '_' + runtime['filtering_hp'] + '_' + str(runtime['filtering_hp_value'])+ '_' + 'vf' + str(cur_validation_fold) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
+            cur_validation_fold_result = self.fun_perfix(runtime, 'npy_temp') +  '_' + runtime['filtering_hp'] + '_' + str(runtime['filtering_hp_value'])+ '_' + 'vf' + str(cur_validation_fold) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
             new_runtime = runtime.copy()                                      
             new_runtime['cur_validation_fold']  = cur_validation_fold
             new_runtime['single_fold_type']  = 'validation'
@@ -730,7 +772,7 @@ class alm_ml:
                     self.fun_single_fold_prediction(new_runtime)       
                     
         if runtime['cluster'] == 1:
-            batch_log = self.prefix(new_runtime,'log') + '_' + runtime['batch_id'] + '.log'
+            batch_log = self.fun_perfix(new_runtime,'log') + '_' + runtime['batch_id'] + '.log'
             if self.varity_obj.fun_monitor_jobs(cur_jobs,batch_log,runtime) == 1:
                 alm_fun.show_msg (runtime['log'],1, 'Batch: '  +  runtime['batch_id'] + ' all results are done,start to gathering results......')                       
             
@@ -739,7 +781,7 @@ class alm_ml:
         #**********************************************************************                          
         alm_fun.show_msg (runtime['log'],self.verbose,'All parallel jobs are finished. Collecting results......' )
         for cur_validation_fold in range(cv_split_folds):                               
-            cur_validation_result = self.prefix(new_runtime, 'npy_temp') +  '_' + runtime['filtering_hp'] + '_' + str(runtime['filtering_hp_value'])+ '_' + 'vf' + str(cur_validation_fold) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
+            cur_validation_result = self.fun_perfix(new_runtime, 'npy_temp') +  '_' + runtime['filtering_hp'] + '_' + str(runtime['filtering_hp_value'])+ '_' + 'vf' + str(cur_validation_fold) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
             #in the case the result file does exist, but not compelete while loading (causing pickle loading error)
             successful_load = 0
             while successful_load  == 0:
@@ -866,7 +908,7 @@ class alm_ml:
         alm_fun.show_msg (runtime['log'],1,alm_predictor.tune_obj + ' on validation set:' + str(round(cur_hp_validation_performance,4)) + '±' + str(round(cur_hp_validation_performance_ste,4)))         
         alm_fun.show_msg (runtime['log'],1,alm_predictor.tune_obj + ' on training set: ' + str(round(cur_hp_train_performance,4)) + '±' + str(round(cur_hp_train_performance_ste,4)))
         
-        spvalue_result_file = self.prefix(runtime, 'csv',1) + '_' + runtime['filtering_hp'] + '_spvalue_results.txt'
+        spvalue_result_file = self.fun_perfix(runtime, 'csv',1) + '_' + runtime['filtering_hp'] + '_spvalue_results.txt'
         cur_spvalue_result = [str(runtime['filtering_hp_value']),str(cur_hp_train_performance),str(cur_hp_train_performance_ste),str(cur_hp_validation_performance),str(cur_hp_validation_performance_ste)] 
         alm_fun.show_msg(spvalue_result_file,1,'\t'.join(cur_spvalue_result),with_time = 0)
         return  (True)                            
@@ -878,13 +920,13 @@ class alm_ml:
         cur_trial = len(self.cur_trials_result)-1        
         cv_split_folds = alm_predictor.data_instance.cv_split_folds        
         #save the compelete trials so far
-        pickle.dump(self.cur_trials_result, open(self.prefix(runtime, 'npy') + '_trials.pkl', "wb"))
+        pickle.dump(self.cur_trials_result, open(self.fun_perfix(runtime, 'npy') + '_trials.pkl', "wb"))
         #save the current hp_dict                
         cur_hp_dict = alm_predictor.hp_default
         for key in cur_hyperopt_hp.keys():
             cur_hp_dict[key] = cur_hyperopt_hp[key]
         # save current  cur_hp_dict
-        cur_hp_dict_file = self.prefix(runtime, 'npy_temp')+ '_' + 'tr' +  str(cur_trial) + '_hp_dict.npy'
+        cur_hp_dict_file = self.fun_perfix(runtime, 'npy_temp')+ '_' + 'tr' +  str(cur_trial) + '_hp_dict.npy'
         np.save(cur_hp_dict_file,cur_hp_dict)
 
         alm_fun.show_msg (runtime['log'],1,"***************************************************************")
@@ -910,7 +952,7 @@ class alm_ml:
             runtime['batch_id'] = alm_fun.get_random_id(10)
         alm_fun.show_msg (runtime['log'],1,'Start to run validation cv prediction, batch id: ' + runtime['batch_id'] + '......' )        
         for cur_validation_fold in range(cv_split_folds):
-            cur_validation_fold_result = self.prefix(runtime, 'npy_temp') + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy' 
+            cur_validation_fold_result = self.fun_perfix(runtime, 'npy_temp') + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy' 
             new_runtime = runtime.copy()              
             new_runtime['cur_trial'] = cur_trial            
             new_runtime['cur_validation_fold']  = cur_validation_fold
@@ -918,7 +960,7 @@ class alm_ml:
             new_runtime['run_on_node'] = 1
             new_runtime['mem'] = 10240
             new_runtime['action'] = 'single_fold_prediction'                        
-            new_runtime['job_name'] = self.prefix(new_runtime,'npy_temp',with_path = 0) + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id']           
+            new_runtime['job_name'] = self.fun_perfix(new_runtime,'npy_temp',with_path = 0) + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id']           
             new_runtime['cur_fold_result'] =  cur_validation_fold_result           
             new_runtime['hp_dict_file'] = cur_hp_dict_file
             if not os.path.isfile(new_runtime['cur_fold_result']):        
@@ -941,7 +983,7 @@ class alm_ml:
         #**********************************************************************                          
         alm_fun.show_msg (runtime['log'],1,'All parallel jobs are finished. Collecting results......' )
         for cur_validation_fold in range(cv_split_folds):                               
-            cur_validation_result = self.prefix(runtime, 'npy_temp') + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
+            cur_validation_result = self.fun_perfix(runtime, 'npy_temp') + '_vf' + str(cur_validation_fold) + '_tr' + str(cur_trial) + '_' + runtime['batch_id'] + '_hp_validation_single_fold_result.npy'
         
             #in the case the result file does exist, but not compelete while loading (causing pickle loading error)
             successful_load = 0
@@ -1090,7 +1132,7 @@ class alm_ml:
         alm_fun.show_msg (runtime['log'],1,"End Time: " + str(datetime.now()))
         alm_fun.show_msg (runtime['log'],1,"***************************************************************")        
                 
-        trial_result_file = self.prefix(runtime, 'csv') + '_trial_results.txt'
+        trial_result_file = self.fun_perfix(runtime, 'csv') + '_trial_results.txt'
         
         cur_trial_cols = ['tid','train_' + alm_predictor.tune_obj, 'train_' + alm_predictor.tune_obj + '_ste', 'validation_' + alm_predictor.tune_obj, 'validation_' + alm_predictor.tune_obj + '_ste'] + \
                          [key for key in cur_hyperopt_hp.keys()]
@@ -1119,7 +1161,7 @@ class alm_ml:
 #         combined_loo_file.close()      
 #         
 #         
-        cur_hp_npy = self.prefix(runtime,'npy',target_action = 'hp_tuning')+ '_hp_dict.npy'       
+        cur_hp_npy = self.fun_perfix(runtime,'npy',target_action = 'hp_tuning')+ '_hp_dict.npy'       
         cur_hp_dict = np.load(cur_hp_npy).item()
         [alpha,beta] = self.update_sample_weights(cur_hp_dict,runtime)            
         extra_data = alm_predictor.data_instance.extra_train_data_df_lst[0].copy()
@@ -1183,7 +1225,7 @@ class alm_ml:
             extra_loo_data_df = extra_data_df.loc[set(extra_data_df.index) - set([cur_remove_index]),:]
             cur_loo_train_df = cur_train_df.loc[set(cur_train_df.index) - set([cur_remove_index]),:]
         
-            model_file = self.prefix(runtime, 'npy')+  '.model'           
+            model_file = self.fun_perfix(runtime, 'npy')+  '.model'           
             r = alm_estimator.run(features, alm_dataset.dependent_variable, alm_predictor.ml_type, cur_loo_train_df, cur_loo_test_df ,extra_loo_data_df,None,alm_predictor,model_file)
             
             target_id_file = open(runtime['project_path'] + 'output/loo_temp/' + target_id + '_' + alm_predictor.name + '.txt','w')            
@@ -1271,14 +1313,14 @@ class alm_ml:
             print (cur_test_df.dtypes)
             print (str(cur_test_df.shape))
             
-        model_file = self.prefix(runtime, 'npy')+  '.model'
+        model_file = self.fun_perfix(runtime, 'npy')+  '.model'
 #         alm_fun.show_msg(runtime['log'],1, runtime['job_name'] + ' started to predict......')
         r = alm_estimator.run(features, alm_dataset.dependent_variable, alm_predictor.ml_type, cur_train_df, cur_test_df ,extra_data_df,None,alm_predictor,model_file)
         
         if alm_predictor.type == 1:           
             r['hp_dict'] = cur_hp_dict                                    
             if (r['model'] is not None) & (runtime['single_fold_type'] in ['target','test']):
-                r['model'].save_model(self.prefix(runtime, 'npy')+  '.model')
+                r['model'].save_model(self.fun_perfix(runtime, 'npy')+  '.model')
                     
         print (r['test_score_df'])   
 #         print (r['test_y_predicted'])                 
@@ -1358,18 +1400,49 @@ class alm_ml:
         extra_data = alm_predictor.data_instance.extra_train_data_df_lst[extra_data_index].copy()   
         core_data =  alm_predictor.data_instance.train_data_index_df.copy()
         if type == 'from_hp_npy':
-            if os.path.isfile(self.prefix(runtime,'npy') + '_hp_weights.npy'):
-                alpha = np.load(self.prefix(runtime,'npy') + '_hp_weights.npy')
+            if os.path.isfile(self.fun_perfix(runtime,'npy') + '_hp_weights.npy'):
+                alpha = np.load(self.fun_perfix(runtime,'npy') + '_hp_weights.npy')
                 extra_data['weight'] = alpha
                 
 #         if type == 'from_nn_npy':    
-#             if os.path.isfile(self.prefix(runtime,'npy') + '_' + str(init_weights) +'_' + str(target_as_source)  +'_' + self.session_id + '_nn_weights.npy'):
-#                 alpha = np.load(self.prefix(runtime,'npy') + '_' + str(init_weights) +'_' + str(target_as_source)  +'_' + self.session_id + '_nn_weights.npy')
+#             if os.path.isfile(self.fun_perfix(runtime,'npy') + '_' + str(init_weights) +'_' + str(target_as_source)  +'_' + self.session_id + '_nn_weights.npy'):
+#                 alpha = np.load(self.fun_perfix(runtime,'npy') + '_' + str(init_weights) +'_' + str(target_as_source)  +'_' + self.session_id + '_nn_weights.npy')
 #                 extra_data['weight'] = alpha
                 
-        if runtime['hp_tune_type'] == 'sp':                           
+        if runtime['hp_tune_type'] == 'mv_analysis':
+            core_data['weight'] = 1                           
             extra_data['weight'] = 0
-            extra_data.loc[alm_predictor.hp_mv_indices[runtime['filtering_hp']][hp_dict[runtime['filtering_hp']]],'weight'] = 1
+            
+            cur_qip_dict = alm_predictor.qip[runtime['mv_qip']]
+            
+            cur_extra_data = extra_data.loc[extra_data['set_name'].isin(cur_qip_dict['set_list'])]
+            cur_extra_data['index_for_order'] = cur_extra_data.index
+            
+            if cur_qip_dict['direction'] == 0:
+                cur_extra_data  = cur_extra_data.sort_values([cur_qip_dict['qip_col'],'index_for_order'])
+            else:
+                cur_extra_data  = cur_extra_data.sort_values([cur_qip_dict['qip_col'],'index_for_order'],ascending = False)
+
+            n = int(cur_qip_dict['mv_data_points'])
+            r = cur_qip_dict['mv_size_percent']/100
+            m = cur_extra_data.shape[0]            
+            x= int(m*(1-r)/(n-1))
+            mv_size = int(r*m)
+            
+            if (runtime['mv_id'] != 'none') & (runtime['mv_id'] != 'all'):
+                cur_mv_start = int(runtime['mv_id']) * x
+                cur_mv_end =   cur_mv_start + mv_size
+                if int(runtime['mv_id']) == n - 1:
+                    cur_mv_end = m                
+                cur_mv_data_indices = cur_extra_data.index[cur_mv_start:cur_mv_end]    
+                            
+            if runtime['mv_id'] == 'none':
+                cur_mv_data_indices = []
+                
+            if runtime['mv_id'] == 'all':
+                cur_mv_data_indices = cur_extra_data.index                   
+            
+            extra_data.loc[cur_mv_data_indices,'weight'] = 1
     
         if runtime['hp_tune_type'] == 'cd':                           
             extra_data['weight'] = 0
@@ -1538,12 +1611,12 @@ class alm_ml:
             
         mv_size = int(mv_size)
                     
-        trial_file = self.prefix(runtime,'npy',target_action = 'hp_tuning',ignore_trails_mv_size=1) +'_trials.pkl'
-        trial_result_file = self.prefix(runtime,'csv',target_action = 'hp_tuning',ignore_trails_mv_size=1) + '_trial_results.txt'
+        trial_file = self.fun_perfix(runtime,'npy',target_action = 'hp_tuning',ignore_trails_mv_size=1) +'_trials.pkl'
+        trial_result_file = self.fun_perfix(runtime,'csv',target_action = 'hp_tuning',ignore_trails_mv_size=1) + '_trial_results.txt'
                 
-        best_hp_dict_file = self.prefix(runtime,'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
-        best_hp_df_file = self.prefix(runtime,'csv',target_action = 'hp_tuning') + '_best_hps.csv'
-        best_hp_plot_file = self.prefix(runtime, 'img') + '_hp_selection.png'   
+        best_hp_dict_file = self.fun_perfix(runtime,'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
+        best_hp_df_file = self.fun_perfix(runtime,'csv',target_action = 'hp_tuning') + '_best_hps.csv'
+        best_hp_plot_file = self.fun_perfix(runtime, 'img') + '_hp_selection.png'   
         
 
         #********************************************************************************************
@@ -1768,8 +1841,11 @@ class alm_ml:
             predictor_dict['colors'][predictor] = color_dict[predictor_name]
              
             if predictor.split('_')[0] in runtime['nucleotide_predictors']:
-                predictor_name = predictor_name+ '(*)'
-
+#                 predictor_name = predictor_name+ '(Δ)'
+                predictor_name = predictor_name+ '(•)'
+                
+                
+                
             predictor_dict['names'][predictor] = predictor_name
 
         all_dict = {}    
@@ -1858,74 +1934,79 @@ class alm_ml:
                     all_dict[predictor]['result'][cur_fold]['org_fprs'] = cur_fold_org_fprs
                     all_dict[predictor]['result'][cur_fold]['org_tprs'] = cur_fold_org_tprs
                     all_dict[predictor]['result'][cur_fold]['org_auroc'] = cur_fold_org_auroc
-    
-                for score_type in score_types:
-                    # data points for the curve 
-                    for score_point_metric in score_point_metrics:                     
-                        cur_score_list = []
-                        for cur_fold in range(cv_folds): 
-                            if (cv_folds > 1) & (score_type == 'org'):
-                                cur_score_list.append(all_dict[predictor]['result'][cur_fold]['interp_' + score_point_metric])  
-                            else:
-                                cur_score_list.append(all_dict[predictor]['result'][cur_fold][score_type + '_' + score_point_metric])
-                                                  
-                        all_dict[predictor]['result'][score_type + '_' + score_point_metric]= np.mean(cur_score_list,axis= 0)
-                        all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se']= np.std(cur_score_list,axis= 0)/np.sqrt(cv_folds)
-                        if score_type + '_' + score_point_metric in  ['interp_recalls','interp_fprs','org_recalls','org_fprs']:
-                            all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_upper']= np.minimum(all_dict[predictor]['result'][score_type + '_' + score_point_metric] + all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se'], 1)
-                            all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_lower']= np.maximum(all_dict[predictor]['result'][score_type + '_' + score_point_metric] - all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se'], 0)
-                            
-                    #statistics for each predictor                            
-                    for score_metric in score_metrics:
-                        compare_score_list = []
-                        cur_score_list = []    
-                        
-                        for cur_fold in range(cv_folds):   
-                            compare_score_list.append(all_dict[compare_predictor]['result'][cur_fold][score_type + '_' + score_metric])                            
-                            cur_score_list.append(all_dict[predictor]['result'][cur_fold][score_type + '_' + score_metric]) 
-                                                    
-                        if run_bootstrapping == 0:                               
-                            all_dict[predictor]['result'][score_type + '_' + score_metric + '_df']= cv_folds -1                        
-                            all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']= np.mean(cur_score_list)                    
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_se']= np.std(cur_score_list,ddof= 1)/np.sqrt(cv_folds)
-                            if two_sided == 0:                        
-                                all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.ttest_rel(compare_score_list,cur_score_list)[1]/2 # one sided test
-                            else:
-                                all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.ttest_rel(compare_score_list,cur_score_list)[1] # one sided test
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] = np.mean(np.array(compare_score_list) - np.array(cur_score_list))
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se'] = np.std(np.array(compare_score_list) - np.array(cur_score_list))/np.sqrt(cv_folds)
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] = "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] - runtime['t_value']*all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se']) + ' ~ inf'
-                        
-                        if run_bootstrapping == 1:                               
-                            all_dict[predictor]['result'][score_type + '_' + score_metric + '_df']= cv_folds -1                        
-                            all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']= np.mean(cur_score_list)                    
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_se']= np.std(cur_score_list,ddof= 1)
-                            
-                            #calculate z score
-                            diff = np.array(compare_score_list) - np.array(cur_score_list)
-    #                         cur_z_statistic = (np.mean(compare_score_list) - np.mean(cur_score_list))/np.sqrt(np.std(compare_score_list,ddof = 1)**2 + np.std(cur_score_list,ddof = 1)**2)
-                            cur_z_statistic = np.mean(diff)/np.std(diff,ddof = 1)
-    
-                            if two_sided == 0:                        
-                                all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.norm.sf(abs(cur_z_statistic))
-                            else:
-                                all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.norm.sf(abs(cur_z_statistic))*2
-                                
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] = np.mean(diff)
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se'] = np.std(diff,ddof = 1)                                                
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] = "{:.3f}".format(np.percentile(diff,5)) + ' ~ inf'
-    
-                        if predictor == compare_predictor:
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se'])
-                        else:                    
-    #                         all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se']) + ' (' + all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] +',' + "{:.2e}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue']) +')'                                    
-                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se']) + ' [' + "{:.1e}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue']) +']'
-    
-                        if cv_folds == 1:
-                             all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean'])                            
-                                                                                            
+                    
             np.save(output_file.replace('img','npy') + '.npy',all_dict)
-           
+                                        
+        for predictor in predictors:
+            for score_type in score_types:
+                # data points for the curve 
+                for score_point_metric in score_point_metrics:                     
+                    cur_score_list = []
+                    for cur_fold in range(cv_folds): 
+                        if (cv_folds > 1) & (score_type == 'org'):
+                            cur_score_list.append(all_dict[predictor]['result'][cur_fold]['interp_' + score_point_metric])  
+                        else:
+                            cur_score_list.append(all_dict[predictor]['result'][cur_fold][score_type + '_' + score_point_metric])
+                                              
+                    all_dict[predictor]['result'][score_type + '_' + score_point_metric]= np.mean(cur_score_list,axis= 0)
+                    all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se']= np.std(cur_score_list,axis= 0)/np.sqrt(cv_folds)
+                    if score_type + '_' + score_point_metric in  ['interp_recalls','interp_fprs','org_recalls','org_fprs']:
+                        all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_upper']= np.minimum(all_dict[predictor]['result'][score_type + '_' + score_point_metric] + all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se'], 1)
+                        all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_lower']= np.maximum(all_dict[predictor]['result'][score_type + '_' + score_point_metric] - all_dict[predictor]['result'][score_type + '_' + score_point_metric +'_se'], 0)
+                        
+                #statistics for each predictor                            
+                for score_metric in score_metrics:
+                    compare_score_list = []
+                    cur_score_list = []    
+                    
+                    for cur_fold in range(cv_folds):   
+                        compare_score_list.append(all_dict[compare_predictor]['result'][cur_fold][score_type + '_' + score_metric])                            
+                        cur_score_list.append(all_dict[predictor]['result'][cur_fold][score_type + '_' + score_metric]) 
+                                                
+                    if run_bootstrapping == 0:                               
+                        all_dict[predictor]['result'][score_type + '_' + score_metric + '_df']= cv_folds -1                        
+                        all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']= np.mean(cur_score_list)                    
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_se']= np.std(cur_score_list,ddof= 1)/np.sqrt(cv_folds)
+                        if two_sided == 0:                        
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.ttest_rel(compare_score_list,cur_score_list)[1]/2 # one sided test
+                        else:
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.ttest_rel(compare_score_list,cur_score_list)[1] # one sided test
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] = np.mean(np.array(compare_score_list) - np.array(cur_score_list))
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se'] = np.std(np.array(compare_score_list) - np.array(cur_score_list))/np.sqrt(cv_folds)
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] = "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] - runtime['t_value']*all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se']) + ' ~ inf'
+                    
+                    if run_bootstrapping == 1:                               
+                        all_dict[predictor]['result'][score_type + '_' + score_metric + '_df']= cv_folds -1                        
+                        all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']= np.mean(cur_score_list)                    
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_se']= np.std(cur_score_list,ddof= 1)
+                        
+                        #calculate z score
+                        diff = np.array(compare_score_list) - np.array(cur_score_list)
+#                         cur_z_statistic = (np.mean(compare_score_list) - np.mean(cur_score_list))/np.sqrt(np.std(compare_score_list,ddof = 1)**2 + np.std(cur_score_list,ddof = 1)**2)
+                        cur_z_statistic = np.mean(diff)/np.std(diff,ddof = 1)
+
+                        if two_sided == 0:                        
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.norm.sf(abs(cur_z_statistic))
+                        else:
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_pvalue']= stats.norm.sf(abs(cur_z_statistic))*2
+                            
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size'] = np.mean(diff)
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_effect_size_se'] = np.std(diff,ddof = 1)                                                
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] = "{:.3f}".format(np.percentile(diff,5)) + ' ~ inf'
+
+                    if predictor == compare_predictor:
+                        all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se'])
+                    else:                    
+#                         all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se']) + ' (' + all_dict[predictor]['result'][score_type + '_' + score_metric +'_ci'] +',' + "{:.2e}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue']) +')'
+
+                        if all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue'] <= 0.05:                                                                          
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] = "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se']) + ' [' +  "{:.1e}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue']) +'*]'
+                        else:
+                            all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean']) + '±' + "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_se']) + ' [' + "{:.1e}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_pvalue']) +']'
+
+                    if cv_folds == 1:
+                         all_dict[predictor]['result'][score_type + '_' + score_metric +'_display'] =  "{:.3f}".format(all_dict[predictor]['result'][score_type + '_' + score_metric + '_mean'])                            
+                                                                                        
         #**************************************************************
         # save statistics output to csv file 
         #**************************************************************
@@ -1963,6 +2044,7 @@ class alm_ml:
         
             fig = plt.figure(figsize=(fig_x, fig_y),dpi = dpi)
             plt.clf()
+#             plt.rc( 'text', usetex=True ) 
             plt.rcParams["font.family"] = "Helvetica"    
             ax = plt.subplot()
             
@@ -2184,8 +2266,9 @@ class alm_ml:
         pass 
         correlation_pivot_df =  pd.pivot(correlation_df[[runtime['correlation_key_col'],'predictor','correlation']],index = 'predictor',columns = runtime['correlation_key_col'] ,values = 'correlation')        
         correlation_df = correlation_df.sort_values(['predictor',runtime['correlation_key_col']])                        
-        correlation_compare_indices = correlation_df['predictor'] == runtime['compare_to_predictor'] 
-        
+        correlation_compare_indices = correlation_df['predictor'] == runtime['compare_to_predictor']
+         
+        correlation_df['predictor_name'] = correlation_df['predictor'].apply(lambda x: x + '(•)' if x in runtime['nucleotide_predictors'] else x)        
         for predictor_name in runtime['compare_predictors']:
             
             correlation_indices = correlation_df['predictor'] == predictor_name
@@ -2198,7 +2281,10 @@ class alm_ml:
                 cur_correlation_ci = "{:.3f}".format(cur_correlation_effect_size - runtime['t_value'] * cur_correlation_effect_size_se) + ' ~ inf'                
                 correlation_df.loc[correlation_indices,'star'] = self.get_stars_from_pvalue(cur_correlation_pvalue,pvalue_staronly = True)
                 correlation_df.loc[correlation_indices,'p_value']  =  cur_correlation_pvalue
-                correlation_df.loc[correlation_indices,'p_value_str']  =  'P=' + "{:.1e}".format(cur_correlation_pvalue)  
+                if cur_correlation_pvalue < 0.05:
+                    correlation_df.loc[correlation_indices,'p_value_str']  =  'P=' + "{:.1e}".format(cur_correlation_pvalue) + '*'
+                else:
+                    correlation_df.loc[correlation_indices,'p_value_str']  =  'P=' + "{:.1e}".format(cur_correlation_pvalue)
                 correlation_df.loc[correlation_indices,'effect_size']  =  cur_correlation_effect_size
                 correlation_df.loc[correlation_indices,'effect_size_se']  =  cur_correlation_effect_size_se
                 correlation_df.loc[correlation_indices,'ci']  =  cur_correlation_ci
@@ -2208,8 +2294,7 @@ class alm_ml:
             
         correlation_df['mean_str'] = correlation_df['mean'].apply(lambda x: "{:.3f}".format(x))
         correlation_df['ste_str'] = correlation_df['ste'].apply(lambda x: "{:.3f}".format(x)) 
-
-        correlation_df['display'] = correlation_df['predictor'] + ':' + correlation_df['mean_str'] + '±' + \
+        correlation_df['display'] = correlation_df['predictor_name'] + ':' + correlation_df['mean_str'] + '±' + \
                                     correlation_df['ste_str'] + ' [' + correlation_df['p_value_str'] + ']'
                                     
         compare_index = correlation_df['predictor'] == runtime['compare_to_predictor']
@@ -2224,8 +2309,8 @@ class alm_ml:
         pass
         correlation_df = correlation_df.sort_values(['mean'],ascending = False)
         
-        output_figure_file = self.prefix(runtime, 'img') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])  +  '_' + runtime['correlation_type'] + '_' + runtime['dependent_variable'] + '.png'
-        output_csv_file  =  self.prefix(runtime, 'csv') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])  +  '_' + runtime['correlation_type'] + '_' + runtime['dependent_variable'] + '.csv'
+        output_figure_file = self.fun_perfix(runtime, 'img') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])  +  '_' + runtime['correlation_type'] + '_' + runtime['dependent_variable'] + '.png'
+        output_csv_file  =  self.fun_perfix(runtime, 'csv') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])  +  '_' + runtime['correlation_type'] + '_' + runtime['dependent_variable'] + '.csv'
         
         correlation_output_df = correlation_df.drop(columns = ['symbol','correlation']).drop_duplicates()
         correlation_pivot_df['predictor'] = correlation_pivot_df.index
@@ -2258,13 +2343,13 @@ class alm_ml:
         correlation_df['mean_str'] = correlation_df['mean'].apply(lambda x: "{:.3f}".format(x))
         correlation_df['ste_str'] = correlation_df['ste'].apply(lambda x: "{:.3f}".format(x))
         correlation_df['effect_size_str'] = correlation_df['effect_size'].apply(lambda x: "{:.3f}".format(x))
-        correlation_df['p_value_str']  =  correlation_df['p_value'].apply(lambda x: 'P=' + "{:.1e}".format(x))
-
+        correlation_df['p_value_str']  =  correlation_df['p_value'].apply(lambda x: 'P=' + "{:.1e}".format(x) + '*' if x<0.05 else 'P=' + "{:.1e}".format(x))
+# 
+#         correlation_df['display'] = correlation_df['predictor'] + ':' + correlation_df['mean_str'] + '±' + \
+#                                     correlation_df['ste_str'] + ' [' + correlation_df['p_value_str'] + ',CI=' + correlation_df['ci'] + ']'
         
-        correlation_df['display'] = correlation_df['predictor'] + ':' + correlation_df['mean_str'] + '±' + \
-                                    correlation_df['ste_str'] + ' [' + correlation_df['p_value_str'] + ',CI=' + correlation_df['ci'] + ']'
-                                    
-        correlation_df['display'] = correlation_df['predictor'] + ':' + correlation_df['mean_str'] + '±' + \
+        correlation_df['predictor_name'] = correlation_df['predictor'].apply(lambda x: x + '(•)' if x in runtime['nucleotide_predictors'] else x )
+        correlation_df['display'] = correlation_df['predictor_name'] + ':' + correlation_df['mean_str'] + '±' + \
                                     correlation_df['ste_str'] + ' [' + correlation_df['p_value_str'] + ']'
                                                              
                                     
@@ -2285,13 +2370,13 @@ class alm_ml:
         plt.rcParams["font.family"] = "Helvetica"                  
         ax = plt.subplot()
         
-        correlation_output_df = correlation_df[['predictor','display','mean','ste','effect_size','ci','p_value']]
+        correlation_output_df = correlation_df[['predictor_name','predictor','display','mean','ste','effect_size','ci','p_value']]
         correlation_output_df = correlation_output_df.drop_duplicates()  
         correlation_output_df = correlation_output_df.loc[~correlation_output_df['predictor'].isin(runtime['no_plot_predictors']),:]
         
         display_list =  list(correlation_output_df['display'])
 #         ax = sns.barplot(x='mean', y="predictor", hue_order = correlation_output_df['display'].unique(),hue="display", data=correlation_output_df,ax = ax)
-        ax = sns.barplot(x='mean', y="predictor", data=correlation_output_df,ax = ax, linewidth=2.5, facecolor=(1, 1, 1, 0), errcolor=".2", edgecolor=".2")
+        ax = sns.barplot(x='mean', y="predictor_name", data=correlation_output_df,ax = ax, linewidth=2.5, facecolor=(1, 1, 1, 0), errcolor=".2", edgecolor=".2")
         
         i = 0
         for p in ax.patches:
@@ -2375,7 +2460,7 @@ class alm_ml:
                     for plot_predictor in runtime['compare_predictors']: 
                         plot_runtime = runtime.copy()
                         plot_runtime['predictor'] = plot_predictor                    
-                        cur_test_result_dict_file = self.prefix(plot_runtime, 'npy',1,target_action = 'test_cv_prediction') + '_test_cv_results.npy'
+                        cur_test_result_dict_file = self.fun_perfix(plot_runtime, 'npy',1,target_action = 'test_cv_prediction') + '_test_cv_results.npy'
                         cur_test_result_dict = np.load(cur_test_result_dict_file).item()
                         cur_test_df[plot_predictor] = cur_test_result_dict['test_y_predicted_dict'][test_folds[0]]                   
           
@@ -2423,58 +2508,64 @@ class alm_ml:
                 for plot_predictor in runtime['compare_predictors']: 
                     plot_runtime = runtime.copy()
                     plot_runtime['predictor'] = plot_predictor                    
-                    cur_test_result_dict_file = self.prefix(plot_runtime, 'npy',1,target_action = 'test_cv_prediction') + '_test_cv_results.npy'
+                    cur_test_result_dict_file = self.fun_perfix(plot_runtime, 'npy',1,target_action = 'test_cv_prediction') + '_test_cv_results.npy'
                     cur_test_result_dict = np.load(cur_test_result_dict_file).item()
                     test_result_dict[plot_predictor] = cur_test_result_dict                                             
                                        
         # Define the the output file name
         if runtime['independent_test_file'] == '':
-            output_file = self.prefix(runtime, 'img') + '_filter' + '_' + str(runtime['filter_test_score'])
+            output_file = self.fun_perfix(runtime, 'img') + '_filter' + '_' + str(runtime['filter_test_score'])
         else:
-            output_file = self.prefix(runtime, 'img') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])
+            output_file = self.fun_perfix(runtime, 'img') + '_' + runtime['independent_test_name'] + '_filter' + '_' + str(runtime['filter_test_score'])
 
         self.plot_classification_curve(runtime,runtime['plot_metric'],runtime['plot_metric_order'],runtime['compare_predictors'],runtime['compare_to_predictor'],n_folds, remain_indices_dict,test_result_dict,output_file,run_bootstrapping = run_bootstrapping, size_factor = runtime['size_factor'],table_scale_factor= runtime['table_scale_factor'], show_size = runtime['plot_show_size'],fig_x = runtime['fig_x'],fig_y = runtime['fig_y'],dpi = runtime['dpi'] )
 
         alm_fun.show_msg(runtime['log'],1,'plot test result ended......')
 
-    def plot_sp_result(self,runtime):       
+    def plot_mv_result(self,runtime):       
          
         alm_predictor = self.proj.predictor[runtime['predictor']]
-        cols = ['window','train_' + alm_predictor.tune_obj,'train_' + alm_predictor.tune_obj + '_ste','validation_' + alm_predictor.tune_obj ,'validation' + alm_predictor.tune_obj]
-        cur_metric = 'validation_' + alm_predictor.tune_obj
-        data_name_sp = alm_predictor.data
-        cur_parameter = runtime['filtering_hp']                
-        k = 0
-
-        fig = plt.figure(figsize=(runtime['fig_x'],runtime['fig_y']))
-        plt.rcParams["font.family"] = "Helvetica"  
-        plt.clf()
-                    
-        sorted_result_file = self.prefix(runtime, 'csv',1)  + '_' + cur_parameter + '_spvalue_results.txt'
-        cur_sorted_hp_df = pd.read_csv(sorted_result_file,sep = '\t',header = None)
-        cur_sorted_hp_df.columns = cols
+        extra_data_index = alm_predictor.data_instance.extra_data_index        
+        extra_data = alm_predictor.data_instance.extra_train_data_df_lst[extra_data_index].copy()   
+        cur_qip_dict = alm_predictor.qip[runtime['mv_qip']]
+        cur_extra_data = extra_data.loc[extra_data['set_name'].isin(cur_qip_dict['set_list'])]
+        cur_extra_data['index_for_order'] = cur_extra_data.index
+            
+        if cur_qip_dict['direction'] == 0:
+            cur_extra_data  = cur_extra_data.sort_values([cur_qip_dict['qip_col'],'index_for_order'])
+        else:
+            cur_extra_data  = cur_extra_data.sort_values([cur_qip_dict['qip_col'],'index_for_order'],ascending = False)
+                        
+        n = int(cur_qip_dict['mv_data_points'])
+        r = cur_qip_dict['mv_size_percent']/100
+        m = cur_extra_data.shape[0]            
+        x= int(m*(1-r)/(n-1))
+        mv_size = int(r*m)    
+        mv_data_points =  cur_qip_dict['mv_data_points']                 
+        cur_direction = cur_qip_dict['direction']            
+       
+        if cur_direction == 0:
+            direction = 'low to high'
+        if cur_direction == 1:
+            direction = 'high to low'
+        
+        addon_set_name = str(cur_qip_dict['set_list'])
+        property = runtime['mv_qip']
+            
+        sorted_result_file = self.fun_perfix(runtime, 'csv',1,target_action = 'mv_analysis')  + '_' + runtime['mv_qip'] + '.csv'
+        cols = ['window','train_' + alm_predictor.tune_obj,'train_' + alm_predictor.tune_obj + '_ste','test_' + alm_predictor.tune_obj ,'test' + alm_predictor.tune_obj]
+        cur_metric = alm_predictor.tune_obj      
+        cur_sorted_hp_df = pd.read_csv(sorted_result_file)
         cur_sorted_hp_df['range_start'] = np.nan
         cur_sorted_hp_df['range_end'] = np.nan
 
-        property = alm_predictor.hps[cur_parameter]['orderby']
-        if   len(alm_predictor.hps[cur_parameter]['source']) == 1:                                       
-            addon_set_name = alm_predictor.hps[cur_parameter]['source'][0]
-        else:
-            addon_set_name = '&'.join(alm_predictor.hps[cur_parameter]['source'])
-        mv_size_percent = alm_predictor.hps[cur_parameter]['mv_size_percent']
-        mv_data_points =  alm_predictor.hps[cur_parameter]['mv_data_points']                 
-        cur_direction = alm_predictor.hp_directions[cur_parameter]            
-        window_size = int(len(alm_predictor.hp_mv_indices[cur_parameter][mv_data_points+1])*mv_size_percent/100)                
-        if cur_direction == 0:
-            direction = 'high to low'
-        if cur_direction == 1:
-            direction = 'low to high'
                         
         varity_0_score_df = cur_sorted_hp_df.loc[cur_sorted_hp_df.index[0],:]
         varity_1_score_df = cur_sorted_hp_df.loc[cur_sorted_hp_df.index[-1],:]
         varity_0_score = varity_0_score_df[cur_metric]
         varity_1_score = varity_1_score_df[cur_metric]
         cur_sorted_hp_df = cur_sorted_hp_df.loc[cur_sorted_hp_df.index[1:-1],:]
+        cur_sorted_hp_df['mv_id'] = cur_sorted_hp_df['mv_id'].astype(int)
                                 
         sorted_score_mean = cur_sorted_hp_df[cur_metric].mean()
         sorted_score_se = cur_sorted_hp_df[cur_metric].std()/np.sqrt(cur_sorted_hp_df.shape[0])
@@ -2483,32 +2574,36 @@ class alm_ml:
 
         cur_sorted_hp_df[cur_metric + '_diff_base'] = cur_sorted_hp_df[cur_metric] - varity_0_score            
         
+        
+        fig = plt.figure(figsize=(runtime['fig_x'],runtime['fig_y']))
+        plt.rcParams["font.family"] = "Helvetica"  
+        plt.clf()        
         ax = plt.subplot()
-        ax.plot(cur_sorted_hp_df['window'],cur_sorted_hp_df[cur_metric],linewidth=6,marker='o', markersize=10,color = '#558ED5')
+        ax.plot(cur_sorted_hp_df['mv_id'],cur_sorted_hp_df[cur_metric],linewidth=6,marker='o', markersize=10,color = '#558ED5')
                                 
         max_index = cur_sorted_hp_df.loc[cur_sorted_hp_df[cur_metric] == cur_sorted_hp_df[cur_metric].max(),:].index[0]
-        sorted_spc = alm_fun.spc_cal (cur_sorted_hp_df['window'],cur_sorted_hp_df[cur_metric])            
-        sorted_low_spc = alm_fun.spc_cal (cur_sorted_hp_df.loc[1:max_index,'window'],cur_sorted_hp_df.loc[1:max_index,cur_metric])            
-        sorted_high_spc = alm_fun.spc_cal (cur_sorted_hp_df.loc[max_index:mv_data_points,'window'],cur_sorted_hp_df.loc[max_index:mv_data_points,cur_metric])
+        sorted_spc = alm_fun.spc_cal (cur_sorted_hp_df['mv_id'],cur_sorted_hp_df[cur_metric])            
+        sorted_low_spc = alm_fun.spc_cal (cur_sorted_hp_df.loc[1:max_index,'mv_id'],cur_sorted_hp_df.loc[1:max_index,cur_metric])            
+        sorted_high_spc = alm_fun.spc_cal (cur_sorted_hp_df.loc[max_index:mv_data_points,'mv_id'],cur_sorted_hp_df.loc[max_index:mv_data_points,cur_metric])
                                                                 
 #             ax.set_xticks([1,20,40,60,80,100])
-        ax.plot([cur_sorted_hp_df['window'].min(),cur_sorted_hp_df['window'].max()],[sorted_score_mean,sorted_score_mean],color = 'black')
-        ax.plot([cur_sorted_hp_df['window'].min(),cur_sorted_hp_df['window'].max()],[sorted_score_mean + sorted_ci_plus,sorted_score_mean + sorted_ci_plus],ls = '-.',color = 'black')
-        ax.plot([cur_sorted_hp_df['window'].min(),cur_sorted_hp_df['window'].max()],[sorted_score_mean + sorted_ci_minus,sorted_score_mean + sorted_ci_minus],ls = '-.',color = 'black')     
+        ax.plot([cur_sorted_hp_df['mv_id'].min(),cur_sorted_hp_df['mv_id'].max()],[sorted_score_mean,sorted_score_mean],color = 'black')
+        ax.plot([cur_sorted_hp_df['mv_id'].min(),cur_sorted_hp_df['mv_id'].max()],[sorted_score_mean + sorted_ci_plus,sorted_score_mean + sorted_ci_plus],ls = '-.',color = 'black')
+        ax.plot([cur_sorted_hp_df['mv_id'].min(),cur_sorted_hp_df['mv_id'].max()],[sorted_score_mean + sorted_ci_minus,sorted_score_mean + sorted_ci_minus],ls = '-.',color = 'black')     
         ax.set_ylabel('10 Folds AUBPRC',size = 28,labelpad = 10)
-        ax.set_xlabel('Moving Windows (Window size: ' + str('{:,}'.format(window_size))  +', PCC: ' + str('{:.3f}'.format(sorted_spc)) +  ')', size = 28,labelpad = 10)
-        ax.set_title('Add-on set: ' + addon_set_name + '\n (Examples ordered by ' + property + ' ' + direction + ')' ,size = 32,pad = 20)
+        ax.set_xlabel('Moving windows (window size: ' + str('{:,}'.format(mv_size))  +', PCC: ' + str('{:.3f}'.format(sorted_spc)) +  ')', size = 28,labelpad = 10)
+        ax.set_title('Add-on set(s): ' + addon_set_name + '\n (Examples ordered by ' + property + ' ' + direction + ')' ,size = 32,pad = 20)
         ax.tick_params(labelsize=20)
         
         fig.tight_layout(pad = 3)
-        plt.savefig(self.prefix(runtime, 'img',1)  + '_' + cur_parameter + '_mv_result.png')
+        plt.savefig(self.fun_perfix(runtime, 'img',1)  + '_' + property + '.png')
 
         print ('OK')
                   
     def plot_data_weight(self,runtime):        
         
         alm_predictor = self.proj.predictor[runtime['predictor']]        
-        cur_hp_npy = self.prefix(runtime,'npy',target_action = 'hp_tuning')+ '_hp_dict.npy'       
+        cur_hp_npy = self.fun_perfix(runtime,'npy',target_action = 'hp_tuning')+ '_hp_dict.npy'       
         cur_hp_dict = np.load(cur_hp_npy).item()
         [alpha,beta] = self.update_sample_weights(cur_hp_dict,runtime)            
         extra_data = alm_predictor.data_instance.extra_train_data_df_lst[0].copy()
@@ -2527,6 +2622,37 @@ class alm_ml:
         
         weight_scale = 1/all_data_nonzero['weight'].max()
         
+        
+        key_cols = ['p_vid','aa_pos','aa_ref','aa_alt']
+        annotation_cols = ['clinvar_id','clinvar_source','hgmd_source','gnomad_source','humsavar_source','mave_source',
+                           'clinvar_label','hgmd_label','gnomad_label','humsavar_label','mave_label','label',
+                           'train_clinvar_source','train_hgmd_source','train_gnomad_source','train_humsavar_source','train_mave_source']                           
+        score_cols = ['Polyphen2_selected_HVAR_score','Polyphen2_selected_HDIV_score','PROVEAN_selected_score','SIFT_selected_score',
+                      'CADD_raw','PrimateAI_score','Eigen-raw_coding','GenoCanyon_score','integrated_fitCons_score','REVEL_score',
+                      'M-CAP_score','LRT_score','MutationTaster_selected_score','MutationAssessor_selected_score',
+                      'FATHMM_selected_score','MetaSVM_score','MetaLR_score','DANN_score','GERP++_RS',
+                      'phyloP30way_mammalian','phastCons30way_mammalian','SiPhy_29way_logOdds','MPC_selected_score','mistic_score',
+                      'mpc_score','mpc_obs_exp','mpc_mis_badness','mpc_fitted_score','DeepSequence_score','mave_input','mave_norm','mave_score']        
+        feature_cols = ['PROVEAN_selected_score','SIFT_selected_score','evm_epistatic_score','integrated_fitCons_score','LRT_score','GERP++_RS',
+                        'phyloP30way_mammalian','phastCons30way_mammalian','SiPhy_29way_logOdds','blosum100','in_domain','asa_mean','aa_psipred_E',
+                        'aa_psipred_H','aa_psipred_C','bsa_max','h_bond_max','salt_bridge_max','disulfide_bond_max','covelent_bond_max','solv_ne_abs_max',
+                        'mw_delta','pka_delta','pkb_delta','pi_delta','hi_delta','pbr_delta','avbr_delta','vadw_delta','asa_delta','cyclic_delta','charge_delta',
+                        'positive_delta','negative_delta','hydrophobic_delta','polar_delta','ionizable_delta','aromatic_delta','aliphatic_delta','hbond_delta',
+                        'sulfur_delta','essential_delta','size_delta']
+        
+        qip_cols = ['gnomAD_exomes_AF','gnomAD_exomes_AC','gnomAD_exomes_nhomalt','mave_label_confidence','clinvar_review_star','accessibility']
+        
+        other_cols = ['set_name','log_af']
+        
+        
+        all_data['weight'] = all_data['weight'] * weight_scale        
+        all_data[key_cols + feature_cols + ['weight','label']].to_csv(runtime['project_path'] + 'output/csv/' + runtime['predictor'] + '_training.csv',index = False)
+                
+        all_input_data = all_data[key_cols + feature_cols + annotation_cols + score_cols + feature_cols + qip_cols + other_cols]
+        all_input_data['extra_data'] = 1
+        all_input_data.loc[all_input_data['set_name'].str.contains('core'),'extra_data'] = 0
+        all_input_data.to_csv(runtime['project_path'] + 'output/csv/' + runtime['predictor'] + '_input_data.csv',index = False)
+
 #         all_data_nonzero.loc[[160230,53630,153634],:].to_csv(runtime['project_path'] + 'output/csv/' + runtime['session_id'] +  '_' + runtime['predictor'] + '_loo_test.csv',index = False)
         
 #         all_data.loc[all_data['set_name'] == 'core_clinvar_0','weight']
@@ -2654,7 +2780,7 @@ class alm_ml:
         cb = fig.colorbar(weight_mapper, cax=cbar_ax)     
         cb.set_label('weight',size = 30,fontweight='bold',labelpad = 15)
         cb.ax.tick_params(labelsize=25)        
-        plt.savefig(self.prefix(runtime,'img') + '_hp_weight_' + str(runtime['plot_weight_type']) + '.png')           
+        plt.savefig(self.fun_perfix(runtime,'img') + '_hp_weight_' + str(runtime['plot_weight_type']) + '.png')           
              
                 
 #         plot_qip = runtime['plot_qip']
@@ -2707,7 +2833,7 @@ class alm_ml:
 #         cb.set_label(plot_qip_col,size = 30,fontweight='bold',labelpad = 15)
 #         cb.ax.tick_params(labelsize=25)
 #           
-#         plt.savefig(self.prefix(runtime,'img') + '_' + plot_qip + '_hp_weight_new.png')  
+#         plt.savefig(self.fun_perfix(runtime,'img') + '_' + plot_qip + '_hp_weight_new.png')  
          
 #         all_nonzero_data = all_data.loc[all_data['weight'] != 0,:]
 #         max_weight = all_nonzero_data['weight'].max()
@@ -2731,7 +2857,7 @@ class alm_ml:
 #         cb = fig.colorbar(weight_mapper, cax=cbar_ax)     
 #         cb.set_label('weight',size = 30,fontweight='bold',labelpad = 15)
 #         cb.ax.tick_params(labelsize=25)        
-#         plt.savefig(self.prefix(runtime,'img') + '_' + plot_qip + '_hp_weight.png')
+#         plt.savefig(self.fun_perfix(runtime,'img') + '_' + plot_qip + '_hp_weight.png')
 #         
         
 
@@ -2763,7 +2889,7 @@ class alm_ml:
         key_cols = ['p_vid','aa_pos','aa_ref','aa_alt']
                      
         #load current tuned hyper-parameter dictionary
-        runtime['hp_dict_file'] = self.prefix(runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
+        runtime['hp_dict_file'] = self.fun_perfix(runtime, 'npy',target_action = 'hp_tuning') + '_hp_dict.npy'
         cur_hp_dict = self.load_cur_hp_dict(runtime['hp_dict_file'])
           
         #update the weight hyper-parameter for each extra training example
@@ -2920,7 +3046,7 @@ class alm_ml:
             cur_label = 'Contribution to model output'
         pass
         
-        cur_savefig = self.prefix(runtime,'img') + '_' + cur_matrix_name + '.png'
+        cur_savefig = self.fun_perfix(runtime,'img') + '_' + cur_matrix_name + '.png'
         cur_title = 'Feature contribution and interaction on ' + cur_type_tag + ' ' + example_tag
 
         cur_plot_matrix[cur_plot_matrix == np.float('inf')] = np.nan
@@ -3032,9 +3158,9 @@ class alm_ml:
 #             ax.get_legend().remove()
 #             fig.tight_layout()
 #             if 'group' in cur_matrix:
-#                 cur_violin_savefig = self.prefix(runtime,'img') + '_violin_group.png' 
+#                 cur_violin_savefig = self.fun_perfix(runtime,'img') + '_violin_group.png' 
 #             else:
-#                 cur_violin_savefig = self.prefix(runtime,'img') + '_violin.png' 
+#                 cur_violin_savefig = self.fun_perfix(runtime,'img') + '_violin.png' 
 #             pass    
 #             plt.savefig(cur_violin_savefig)            
 # 

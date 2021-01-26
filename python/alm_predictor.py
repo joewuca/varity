@@ -42,10 +42,10 @@ class alm_predictor:
         alm_fun.show_msg (self.log,self.verbose,'Class: [alm_predictor] [__init__] ' + self.name + ' ...... @' + str(datetime.now()))
 
         if self.type == 1: # VARITY predictors      
-            if self.hp_tune_type == 'hyperopt':
-                self.create_hyperopt_hps() # create hp_config_dict and hyperopt_hps
-            if self.hp_tune_type == 'hyperopt_logistic':
-                self.create_hyperopt_logistic_hps()
+#             if self.hp_tune_type == 'hyperopt':
+#                 self.create_hyperopt_hps() # create hp_config_dict and hyperopt_hps
+#             if self.hp_tune_type == 'hyperopt_logistic':
+            self.create_hyperopt_logistic_hps()
         
 
     def create_hyperopt_logistic_hps(self):

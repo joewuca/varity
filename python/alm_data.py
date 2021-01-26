@@ -264,7 +264,7 @@ class alm_data:
         self.extra_train_data_df_lst = [x for x in self.extra_train_data_working_df_lst]
                        
         self.n_features = self.train_data_df.shape[1] - 1
-        self.feature_names = self.train_data_df.columns.get_values()
+        self.feature_names = self.train_data_df.columns
         
         self.train_counts = self.train_data_df.shape[0]
         self.test_counts = self.test_data_df.shape[0]

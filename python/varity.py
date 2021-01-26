@@ -292,7 +292,6 @@ class varity:
 #      
         print ("debug done.")
 
-
     def plot_score_versus_probability(self,runtime):
         
 #        **********************************************************************************************************************************************************
@@ -380,7 +379,7 @@ class varity:
                 self.debug(runtime)
 
             if  runtime['action'] == 'mv_analysis':                
-                self.ml.weights_opt_sp(runtime)    
+                self.ml.fun_mv_analysis(runtime)    
                 
             if runtime['action'] == 'validation_cv_prediction_sp':
                 self.ml.fun_validation_cv_prediction_sp(runtime)                   
@@ -392,7 +391,7 @@ class varity:
                 self.ml.fun_single_fold_prediction(runtime)                        
                 
             if runtime['action'] == 'plot_mv_result':  
-                self.ml.plot_sp_result(runtime)                
+                self.ml.plot_mv_result(runtime)                
                                 
             if runtime['action'] == 'hp_tuning':                
                 self.ml.weights_opt_hyperopt(runtime)     
@@ -416,10 +415,7 @@ class varity:
                                 
             if runtime['action'] == 'test_cv_prediction':
                 self.ml.fun_test_cv_prediction(runtime)
-                
-            if runtime['action'] == 'test_cv_prediction':
-                self.ml.fun_test_cv_prediction(runtime)
-                                                                 
+                                                                                
             if runtime['action'] == 'plot_test_result':
                 self.ml.plot_test_result(runtime)
                 
@@ -606,10 +602,10 @@ class varity:
         
         
         #### add loo scores
-        
-        if 'VARITY_R_LOO' not in cur_test_df.columns:
-            all_loo_predictions = pd.read_csv(runtime['project_path'] + 'output/csv/' + runtime['session_id'] +  '_all_loo_predictions_with_keycols.csv')
-            cur_test_df = pd.merge(cur_test_df,all_loo_predictions,how = 'left')
+#         
+#         if 'VARITY_R_LOO' not in cur_test_df.columns:
+#             all_loo_predictions = pd.read_csv(runtime['project_path'] + 'output/csv/' + runtime['session_id'] +  '_all_loo_predictions_with_keycols.csv')
+#             cur_test_df = pd.merge(cur_test_df,all_loo_predictions,how = 'left')
                 
         # make sure all predictors have available scores
         print('# of test variants: ' + str(cur_test_df.shape[0]))

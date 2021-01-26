@@ -81,7 +81,7 @@ class alm_project:
                 if cur_data_init_params['load_from_disk'] == 1:
                     self.data[cur_data] = alm_data.alm_data(cur_data_init_params)
                 else:
-                    cur_data_df = pd.read_csv(argvs['data'][cur_data]['data_file'], low_memory = False)
+                    cur_data_df = pd.read_csv(argvs['runtime']['project_path'] + '/data/' + argvs['data'][cur_data]['data_file'], low_memory = False)
                     cur_target_data_df = pd.DataFrame()
                     if 'target_file' in argvs['data'][cur_data]:
                         if os.path.isfile(argvs['data'][cur_data]['target_file']):                    
