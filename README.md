@@ -4,10 +4,10 @@ VARITY is a supervised machine learning approach to build specialized predictive
 ### Steps to apply VARITY framework:
 1. Assemble training examples (high-quality core set and add-on sets with uncertain quality).
 2. Identify quality-informative properties for each add-on set using domain knowledge (Optional: verify using moving window analysis).
-3. Config hyper-parameters based on quality-informative properties (parameters of corresponding logistic functions).  
+3. Config hyperparameters based on quality-informative properties (parameters of corresponding logistic functions).  
 4. Optional: Run nested cross-validation to evaluate performance.
-5. Run hyper-parameter optimization to determine weight of each training example. 
-6. Train the final VARITY model with core set and weighted add-on sets.
+5. Run hyperparameter optimization to determine weight of each training example. 
+6. Train the final VARITY model with weighted core and add-on sets.
 
 To apply VARITY framework, please read [VARITY user guide](https://github.com/joewuca/varity/tree/master/VARITY_user_guide.pdf) and use  [VARITY python scripts](https://github.com/joewuca/varity/tree/master/python). 
 
